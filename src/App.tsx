@@ -2,7 +2,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import Layout from "@/components/shared/Layout";
 import LoginPage from "@/pages/LoginPage";
+import DashboardPage from "@/pages/DashboardPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
@@ -20,27 +22,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
-}
-
-function DashboardPage() {
-  const { setUser } = useAuthStore();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
-
-  return (
-    <div className="p-8 text-foreground">
-      <p className="mb-4">Dashboard — Paso 5</p>
-      <button
-        onClick={handleLogout}
-        className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm"
-      >
-        Cerrar sesión
-      </button>
-    </div>
-  );
 }
 
 export default function App() {
@@ -69,7 +50,34 @@ export default function App() {
         path="/*"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <Layout>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route
+                  path="/clientes"
+                  element={
+                    <div className="p-6 text-foreground">Clientes — Paso 6</div>
+                  }
+                />
+                <Route
+                  path="/proyectos"
+                  element={
+                    <div className="p-6 text-foreground">
+                      Proyectos — Paso 7
+                    </div>
+                  }
+                />
+                <Route
+                  path="/proyectos/:id"
+                  element={
+                    <div className="p-6 text-foreground">
+                      Detalle Proyecto — Paso 8
+                    </div>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Layout>
           </ProtectedRoute>
         }
       />

@@ -1,0 +1,232 @@
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  FolderKanban,
+  LogOut,
+  Menu,
+  X,
+  Briefcase,
+  Sun,
+  Moon,
+  Monitor,
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/store/authStore";
+import { useThemeStore } from "@/store/themeStore";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/clientes", label: "Clientes", icon: Users, end: false },
+  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, end: false },
+];
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { setUser } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    toast.success("Sesión cerrada");
+    navigate("/login");
+  };
+
+  const themeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar desktop */}
+      <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card">
+        <SidebarContent
+          onLogout={handleLogout}
+          theme={theme}
+          setTheme={setTheme}
+          ThemeIcon={themeIcon}
+        />
+      </aside>
+
+      {/* Sidebar mobile overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -240 }}
+              animate={{ x: 0 }}
+              exit={{ x: -240 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 z-50 w-60 flex flex-col bg-card border-r border-border md:hidden"
+            >
+              <SidebarContent
+                onLogout={handleLogout}
+                theme={theme}
+                setTheme={setTheme}
+                ThemeIcon={themeIcon}
+                onClose={() => setSidebarOpen(false)}
+              />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar mobile */}
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary rounded-lg p-1.5">
+              <Briefcase className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-foreground">
+              MySpaceFreelance
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+interface SidebarContentProps {
+  onLogout: () => void;
+  theme: string;
+  setTheme: (t: "light" | "dark" | "system") => void;
+  ThemeIcon: React.ElementType;
+  onClose?: () => void;
+}
+
+function SidebarContent({
+  onLogout,
+  theme,
+  setTheme,
+  ThemeIcon,
+  onClose,
+}: SidebarContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center justify-between px-4 py-5">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary rounded-lg p-1.5">
+            <Briefcase className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="font-semibold text-foreground">
+            MySpaceFreelance
+          </span>
+        </div>
+        {onClose && (
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              )
+            }
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <Separator />
+
+      {/* Bottom actions */}
+      <div className="px-3 py-4 space-y-1">
+        {/* Theme toggle */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 px-3"
+              size="sm"
+            >
+              <ThemeIcon className="h-4 w-4" />
+              <span className="text-sm">
+                {theme === "dark"
+                  ? "Oscuro"
+                  : theme === "light"
+                    ? "Claro"
+                    : "Sistema"}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end">
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <Sun className="mr-2 h-4 w-4" /> Claro
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <Moon className="mr-2 h-4 w-4" /> Oscuro
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <Monitor className="mr-2 h-4 w-4" /> Sistema
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Logout */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+          size="sm"
+          onClick={onLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm">Cerrar sesión</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
