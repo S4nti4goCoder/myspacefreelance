@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import Layout from "@/components/shared/Layout";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
+import ClientsPage from "@/pages/ClientsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
@@ -53,12 +54,7 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
-                <Route
-                  path="/clientes"
-                  element={
-                    <div className="p-6 text-foreground">Clientes — Paso 6</div>
-                  }
-                />
+                <Route path="/clientes" element={<ClientsPage />} />
                 <Route
                   path="/proyectos"
                   element={
