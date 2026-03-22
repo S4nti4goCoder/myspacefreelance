@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ProjectsPage from "@/pages/ProjectsPage";
+import ProjectDetailPage from "@/pages/ProjectDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
@@ -57,14 +58,7 @@ export default function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/clientes" element={<ClientsPage />} />
                 <Route path="/proyectos" element={<ProjectsPage />} />
-                <Route
-                  path="/proyectos/:id"
-                  element={
-                    <div className="p-6 text-foreground">
-                      Detalle Proyecto — Paso 8
-                    </div>
-                  }
-                />
+                <Route path="/proyectos/:id" element={<ProjectDetailPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
