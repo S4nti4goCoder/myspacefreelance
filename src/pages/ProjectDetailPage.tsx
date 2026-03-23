@@ -22,6 +22,7 @@ import KanbanBoard from "@/components/shared/KanbanBoard";
 import DocumentsTab from "@/components/shared/DocumentsTab";
 import AttachmentsTab from "@/components/shared/AttachmentsTab";
 import PaymentsTab from "@/components/shared/PaymentsTab";
+import CommentsTab from "@/components/shared/CommentsTab";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -229,9 +230,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="comentarios">
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            Comentarios — Paso 12
-          </div>
+          <CommentsTab projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>
