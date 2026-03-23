@@ -1,27 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type { Project } from "@/types";
+import type { Project, Profile } from "@/types";
 
 async function fetchProjects() {
   const { data, error } = await supabase
     .from("projects")
-    .select("*, client:clients(id, name)")
+    .select("*, client:profiles(id, name, email, phone, notes, role)")
+    .eq("profiles.role", "client")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as (Project & { client: { id: string; name: string } | null })[];
+  return data as (Project & { client: Profile | null })[];
 }
 
 async function fetchProject(id: string) {
   const { data, error } = await supabase
     .from("projects")
-    .select("*, client:clients(id, name)")
+    .select("*, client:profiles(id, name, email, phone, notes, role)")
     .eq("id", id)
     .single();
 
   if (error) throw error;
-  return data as Project & { client: { id: string; name: string } | null };
+  return data as Project & { client: Profile | null };
 }
 
 async function createProject(

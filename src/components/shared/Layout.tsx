@@ -3,7 +3,6 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
-  Users,
   FolderKanban,
   LogOut,
   Menu,
@@ -12,6 +11,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -29,8 +29,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/clientes", label: "Clientes", icon: Users, end: false },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, end: false },
+  { to: "/cuentas-clientes", label: "Cuentas", icon: UserCog, end: false },
 ];
 
 interface LayoutProps {
@@ -54,7 +54,6 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar desktop */}
       <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card">
         <SidebarContent
           onLogout={handleLogout}
@@ -64,7 +63,6 @@ export default function Layout({ children }: LayoutProps) {
         />
       </aside>
 
-      {/* Sidebar mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -94,9 +92,7 @@ export default function Layout({ children }: LayoutProps) {
         )}
       </AnimatePresence>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar mobile */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2">
             <div className="bg-primary rounded-lg p-1.5">
@@ -115,7 +111,6 @@ export default function Layout({ children }: LayoutProps) {
           </Button>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
@@ -139,7 +134,6 @@ function SidebarContent({
 }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="flex items-center justify-between px-4 py-5">
         <div className="flex items-center gap-2">
           <div className="bg-primary rounded-lg p-1.5">
@@ -158,7 +152,6 @@ function SidebarContent({
 
       <Separator />
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => (
           <NavLink
@@ -183,9 +176,7 @@ function SidebarContent({
 
       <Separator />
 
-      {/* Bottom actions */}
       <div className="px-3 py-4 space-y-1">
-        {/* Theme toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -216,7 +207,6 @@ function SidebarContent({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Logout */}
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"

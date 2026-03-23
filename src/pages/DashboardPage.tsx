@@ -35,15 +35,15 @@ async function fetchDashboardData() {
   const [projectsRes, clientsRes, tasksRes] = await Promise.all([
     supabase
       .from("projects")
-      .select("*, client:clients(name)")
+      .select("*, client:profiles(id, name)")
       .order("created_at", { ascending: false }),
-    supabase.from("clients").select("id"),
+    supabase.from("profiles").select("id").eq("role", "client"),
     supabase.from("tasks").select("id, status"),
   ]);
 
   return {
     projects: (projectsRes.data ?? []) as (Project & {
-      client: { name: string } | null;
+      client: { id: string; name: string } | null;
     })[],
     clientCount: clientsRes.data?.length ?? 0,
     tasks: tasksRes.data ?? [],

@@ -2,16 +2,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  Copy,
-  CheckCheck,
   Calendar,
   User,
   DollarSign,
   Tag,
-  ExternalLink,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { useProject } from "@/hooks/useProjects";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,16 +42,6 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id!);
-  const [copied, setCopied] = useState(false);
-
-  const shareUrl = `${window.location.origin}/public/proyecto/${project?.share_token}`;
-
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    toast.success("Enlace copiado al portapapeles");
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const formatDate = (date: string | null) => {
     if (!date) return "—";
@@ -131,29 +116,6 @@ export default function ProjectDetailPage() {
                 {project.description}
               </p>
             )}
-          </div>
-
-          {/* Share button */}
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyLink}
-              className="gap-2"
-            >
-              {copied ? (
-                <CheckCheck className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              {copied ? "Copiado" : "Copiar enlace"}
-            </Button>
-            <a href={shareUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Vista cliente
-              </Button>
-            </a>
           </div>
         </div>
 

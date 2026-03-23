@@ -5,12 +5,13 @@ export type ProjectStatus =
   | "done"
   | "cancelled";
 export type TaskStatus = "todo" | "progress" | "review" | "done";
+export type UserRole = "freelancer" | "client";
 
-export interface Client {
+export interface Profile {
   id: string;
-  user_id: string;
   name: string;
-  email: string | null;
+  email: string;
+  role: UserRole;
   phone: string | null;
   notes: string | null;
   created_at: string;
@@ -19,7 +20,7 @@ export interface Client {
 export interface Project {
   id: string;
   user_id: string;
-  client_id: string | null;
+  profile_client_id: string | null;
   name: string;
   description: string | null;
   start_date: string | null;
@@ -30,7 +31,7 @@ export interface Project {
   share_token: string;
   tags: string[];
   created_at: string;
-  client?: Client;
+  client?: Profile | null;
 }
 
 export interface Task {
@@ -81,4 +82,13 @@ export interface Comment {
   message: string;
   is_from_client: boolean;
   created_at: string;
+}
+
+export interface ProjectClient {
+  id: string;
+  project_id: string;
+  client_id: string;
+  created_at: string;
+  profile?: Profile;
+  project?: Project;
 }

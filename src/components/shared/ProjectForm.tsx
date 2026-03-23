@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useClients } from "@/hooks/useClients";
+import { useClientAccounts } from "@/hooks/useClientAccounts";
 import type { Project } from "@/types";
 
 type ProjectFormData = Omit<
@@ -33,13 +33,15 @@ export default function ProjectForm({
   onCancel,
   isLoading,
 }: ProjectFormProps) {
-  const { data: clients } = useClients();
+  const { data: clients } = useClientAccounts();
 
   const [name, setName] = useState(initialData?.name ?? "");
   const [description, setDescription] = useState(
     initialData?.description ?? "",
   );
-  const [clientId, setClientId] = useState(initialData?.client_id ?? "");
+  const [clientId, setClientId] = useState(
+    initialData?.profile_client_id ?? "",
+  );
   const [startDate, setStartDate] = useState(initialData?.start_date ?? "");
   const [dueDate, setDueDate] = useState(initialData?.due_date ?? "");
   const [status, setStatus] = useState(initialData?.status ?? "todo");
@@ -50,7 +52,7 @@ export default function ProjectForm({
   useEffect(() => {
     setName(initialData?.name ?? "");
     setDescription(initialData?.description ?? "");
-    setClientId(initialData?.client_id ?? "");
+    setClientId(initialData?.profile_client_id ?? "");
     setStartDate(initialData?.start_date ?? "");
     setDueDate(initialData?.due_date ?? "");
     setStatus(initialData?.status ?? "todo");
@@ -79,7 +81,8 @@ export default function ProjectForm({
     onSubmit({
       name: name.trim(),
       description: description.trim() || null,
-      client_id: clientId === "none" || clientId === "" ? null : clientId,
+      profile_client_id:
+        clientId === "none" || clientId === "" ? null : clientId,
       start_date: startDate || null,
       due_date: dueDate || null,
       status: status as Project["status"],
