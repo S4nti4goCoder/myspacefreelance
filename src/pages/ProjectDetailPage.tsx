@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import KanbanBoard from "@/components/shared/KanbanBoard";
 import DocumentsTab from "@/components/shared/DocumentsTab";
+import AttachmentsTab from "@/components/shared/AttachmentsTab";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -219,9 +220,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="archivos">
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            Archivos — Paso 10
-          </div>
+          <AttachmentsTab projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="pagos">
