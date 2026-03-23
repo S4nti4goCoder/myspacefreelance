@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, LogIn, Briefcase } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 
 export default function LoginPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,15 +35,35 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
       toast.error("Credenciales incorrectas. Verifica tu email y contraseña.");
-    } else {
+      setIsLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      useAuthStore.getState().setUser(data.user);
+      useAuthStore.getState().setProfile(profile);
+      useAuthStore.getState().setIsLoading(false);
+
       toast.success("¡Bienvenido de vuelta!");
+
+      if (profile?.role === "client") {
+        navigate("/cliente/dashboard");
+      } else {
+        navigate("/");
+      }
     }
 
     setIsLoading(false);

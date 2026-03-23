@@ -47,23 +47,31 @@ async function registerClient({
   phone?: string;
   notes?: string;
 }) {
-  const { data, error } = await supabase.rpc("create_client_account", {
-    client_name: name,
-    client_email: email,
-    client_password: password,
+  // Use signUp to create the user properly
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name, role: "client" },
+    },
   });
 
   if (error) throw error;
+  if (!data.user) throw new Error("No se pudo crear el usuario");
 
   // Update phone and notes in profile
   if (phone || notes) {
     await supabase
       .from("profiles")
       .update({ phone: phone || null, notes: notes || null })
-      .eq("id", data as string);
+      .eq("id", data.user.id);
   }
 
-  return data as string;
+  // Sign out immediately so the freelancer session is not affected
+  await supabase.auth.signOut();
+
+  // Re-login as freelancer is handled by the session
+  return data.user.id;
 }
 
 async function updateClientProfile({
@@ -112,7 +120,9 @@ async function removeProjectFromClient(id: string) {
 }
 
 async function deleteClientAccount(id: string) {
-  const { error } = await supabase.auth.admin.deleteUser(id);
+  const { error } = await supabase.rpc("delete_client_account", {
+    client_id: id,
+  });
   if (error) throw error;
 }
 

@@ -8,6 +8,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import ClientAccountsPage from "@/pages/ClientAccountsPage";
+import ClientDashboardPage from "@/pages/client/ClientDashboardPage";
 
 function ProtectedFreelancerRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuthStore();
@@ -93,7 +94,12 @@ export default function App() {
         return;
       }
 
-      if (event === "SIGNED_IN" && session?.user) {
+      if (
+        (event === "SIGNED_IN" ||
+          event === "TOKEN_REFRESHED" ||
+          event === "INITIAL_SESSION") &&
+        session?.user
+      ) {
         useAuthStore.getState().setUser(session.user);
         const profile = await loadProfile(session.user.id);
         useAuthStore.getState().setProfile(profile);
@@ -132,9 +138,13 @@ export default function App() {
         path="/cliente/*"
         element={
           <ProtectedClientRoute>
-            <div className="p-8 text-foreground">
-              Dashboard Cliente — próximo paso
-            </div>
+            <Routes>
+              <Route path="dashboard" element={<ClientDashboardPage />} />
+              <Route
+                path="*"
+                element={<Navigate to="/cliente/dashboard" replace />}
+              />
+            </Routes>
           </ProtectedClientRoute>
         }
       />
