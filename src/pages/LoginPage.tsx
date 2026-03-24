@@ -17,13 +17,17 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    if (profile?.role === "client")
+      return <Navigate to="/cliente/dashboard" replace />;
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

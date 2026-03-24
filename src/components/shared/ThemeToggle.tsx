@@ -32,7 +32,7 @@ export default function ThemeToggle({ showLabel = false }: ThemeToggleProps) {
           {showLabel && <span className="text-sm">{themeLabel}</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="end">
+      <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>
           <Sun className="mr-2 h-4 w-4" /> Claro
         </DropdownMenuItem>

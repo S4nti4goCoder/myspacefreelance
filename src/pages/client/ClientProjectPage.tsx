@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { getFileUrl } from "@/hooks/useAttachments";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import type { Project, Task, Document, Attachment, Comment } from "@/types";
 
 const statusLabels: Record<string, string> = {
@@ -36,10 +37,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+const statusVariants: {
+  [key: string]: "default" | "secondary" | "outline" | "destructive";
+} = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -213,18 +213,20 @@ export default function ClientProjectPage() {
             variant="ghost"
             size="icon"
             onClick={() => navigate("/cliente/dashboard")}
+            aria-label="Volver al dashboard"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="bg-primary rounded-lg p-1.5">
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-foreground truncate">
               {project.name}
             </p>
             <p className="text-xs text-muted-foreground">Vista del cliente</p>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -428,6 +430,7 @@ export default function ClientProjectPage() {
                             {formatSize(attachment.size)}
                           </p>
                         </div>
+
                         <a
                           href={fileUrl}
                           download={attachment.file_name}
@@ -527,6 +530,7 @@ export default function ClientProjectPage() {
                     onClick={handleSendComment}
                     disabled={!message.trim() || isSending}
                     className="shrink-0"
+                    aria-label="Enviar mensaje"
                   >
                     {isSending ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />

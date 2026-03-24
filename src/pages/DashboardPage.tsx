@@ -24,7 +24,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusColors: Record<string, string> = {
+const statusVariants: {
+  [key: string]: "default" | "secondary" | "outline" | "destructive";
+} = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -120,7 +122,6 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,10 +133,8 @@ export default function DashboardPage() {
         </p>
       </motion.div>
 
-      {/* Search */}
       <GlobalSearch />
 
-      {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((metric, i) => (
           <motion.div
@@ -164,7 +163,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming deadlines */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,15 +216,7 @@ export default function DashboardPage() {
                                 ? "Hoy"
                                 : `${daysLeft}d`}
                           </span>
-                          <Badge
-                            variant={
-                              statusColors[project.status] as
-                                | "default"
-                                | "secondary"
-                                | "outline"
-                                | "destructive"
-                            }
-                          >
+                          <Badge variant={statusVariants[project.status]}>
                             {statusLabels[project.status]}
                           </Badge>
                         </div>
@@ -239,7 +229,6 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
 
-        {/* Recent projects */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -265,15 +254,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-foreground truncate">
                           {project.name}
                         </p>
-                        <Badge
-                          variant={
-                            statusColors[project.status] as
-                              | "default"
-                              | "secondary"
-                              | "outline"
-                              | "destructive"
-                          }
-                        >
+                        <Badge variant={statusVariants[project.status]}>
                           {statusLabels[project.status]}
                         </Badge>
                       </div>
