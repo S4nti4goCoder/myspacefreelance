@@ -8,23 +8,14 @@ import {
   Menu,
   X,
   Briefcase,
-  Sun,
-  Moon,
-  Monitor,
   UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
-import { useThemeStore } from "@/store/themeStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -40,7 +31,6 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { setUser } = useAuthStore();
-  const { theme, setTheme } = useThemeStore();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -50,17 +40,10 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/login");
   };
 
-  const themeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
-
   return (
     <div className="min-h-screen bg-background flex">
       <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card">
-        <SidebarContent
-          onLogout={handleLogout}
-          theme={theme}
-          setTheme={setTheme}
-          ThemeIcon={themeIcon}
-        />
+        <SidebarContent onLogout={handleLogout} />
       </aside>
 
       <AnimatePresence>
@@ -82,9 +65,6 @@ export default function Layout({ children }: LayoutProps) {
             >
               <SidebarContent
                 onLogout={handleLogout}
-                theme={theme}
-                setTheme={setTheme}
-                ThemeIcon={themeIcon}
                 onClose={() => setSidebarOpen(false)}
               />
             </motion.aside>
@@ -119,19 +99,10 @@ export default function Layout({ children }: LayoutProps) {
 
 interface SidebarContentProps {
   onLogout: () => void;
-  theme: string;
-  setTheme: (t: "light" | "dark" | "system") => void;
-  ThemeIcon: React.ElementType;
   onClose?: () => void;
 }
 
-function SidebarContent({
-  onLogout,
-  theme,
-  setTheme,
-  ThemeIcon,
-  onClose,
-}: SidebarContentProps) {
+function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-5">
@@ -177,35 +148,7 @@ function SidebarContent({
       <Separator />
 
       <div className="px-3 py-4 space-y-1">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 px-3"
-              size="sm"
-            >
-              <ThemeIcon className="h-4 w-4" />
-              <span className="text-sm">
-                {theme === "dark"
-                  ? "Oscuro"
-                  : theme === "light"
-                    ? "Claro"
-                    : "Sistema"}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end">
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              <Sun className="mr-2 h-4 w-4" /> Claro
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              <Moon className="mr-2 h-4 w-4" /> Oscuro
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              <Monitor className="mr-2 h-4 w-4" /> Sistema
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ThemeToggle showLabel />
 
         <Button
           variant="ghost"

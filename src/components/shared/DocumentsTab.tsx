@@ -31,6 +31,7 @@ import {
 } from "@/hooks/useDocuments";
 import type { Document } from "@/types";
 import MDEditor from "@uiw/react-md-editor";
+import { useThemeStore } from "@/store/themeStore";
 
 interface DocumentsTabProps {
   projectId: string;
@@ -52,6 +53,8 @@ export default function DocumentsTab({ projectId }: DocumentsTabProps) {
 
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+
+  const { resolvedTheme } = useThemeStore();
 
   const handleSelectDoc = (doc: Document) => {
     setSelectedDoc(doc);
@@ -242,7 +245,7 @@ export default function DocumentsTab({ projectId }: DocumentsTabProps) {
                   value={editContent}
                   onChange={(val) => setEditContent(val ?? "")}
                   height={400}
-                  data-color-mode="dark"
+                  data-color-mode={resolvedTheme}
                 />
               </div>
             ) : (
