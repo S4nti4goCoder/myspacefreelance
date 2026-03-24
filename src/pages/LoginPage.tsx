@@ -51,19 +51,42 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", data.user.id)
         .single();
 
       useAuthStore.getState().setUser(data.user);
-      useAuthStore.getState().setProfile(profile);
+      useAuthStore.getState().setProfile(profileData);
       useAuthStore.getState().setIsLoading(false);
 
       toast.success("¡Bienvenido de vuelta!");
 
-      if (profile?.role === "client") {
+      if (profileData?.role === "client") {
+        // Notify freelancer on first client login
+        if (!profileData.password_changed) {
+          const { data: projectClient } = await supabase
+            .from("project_clients")
+            .select("project_id, project:projects(user_id, name)")
+            .eq("client_id", data.user.id)
+            .limit(1)
+            .single();
+
+          if (projectClient?.project) {
+            const proj = projectClient.project as {
+              user_id: string;
+              name: string;
+            };
+            await supabase.from("notifications").insert({
+              user_id: proj.user_id,
+              type: "client_first_login",
+              title: `${profileData.name} ingresó por primera vez`,
+              message: `Tu cliente acaba de acceder al portal por primera vez.`,
+              project_id: projectClient.project_id,
+            });
+          }
+        }
         navigate("/cliente/dashboard");
       } else {
         navigate("/");

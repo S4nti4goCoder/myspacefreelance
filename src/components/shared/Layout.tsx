@@ -16,6 +16,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import NotificationsPanel from "@/components/shared/NotificationsPanel";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -82,13 +83,16 @@ export default function Layout({ children }: LayoutProps) {
               MySpaceFreelance
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationsPanel />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>
@@ -148,6 +152,8 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
       <Separator />
 
       <div className="px-3 py-4 space-y-1">
+        <NotificationsPanel showLabel />
+
         <ThemeToggle showLabel />
 
         <Button

@@ -17,10 +17,13 @@ import {
   useDeleteComment,
 } from "@/hooks/useComments";
 import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 import type { Comment } from "@/types";
 
 interface CommentsTabProps {
   projectId: string;
+  projectName?: string;
+  projectOwnerId?: string;
 }
 
 function formatTime(dateStr: string) {
@@ -38,18 +41,21 @@ function formatTime(dateStr: string) {
   return date.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
 }
 
-export default function CommentsTab({ projectId }: CommentsTabProps) {
+export default function CommentsTab({
+  projectId,
+  projectName,
+  projectOwnerId,
+}: CommentsTabProps) {
   const { data: comments, isLoading } = useComments(projectId);
   const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
   const [message, setMessage] = useState("");
   const [deletingComment, setDeletingComment] = useState<Comment | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto scroll to bottom on new comments
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -59,17 +65,30 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
   const handleSend = () => {
     if (!message.trim()) return;
 
+    const isClient = profile?.role === "client";
+
     createComment.mutate(
       {
         project_id: projectId,
-        author: user?.email ?? "Freelancer",
+        author: profile?.name ?? user?.email ?? "Freelancer",
         message: message.trim(),
-        is_from_client: false,
+        is_from_client: isClient,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           setMessage("");
           textareaRef.current?.focus();
+
+          // If client sends message, notify the freelancer
+          if (isClient && projectOwnerId) {
+            await supabase.from("notifications").insert({
+              user_id: projectOwnerId,
+              type: "new_message",
+              title: `Nuevo mensaje de ${profile?.name ?? "Cliente"}`,
+              message: `En el proyecto "${projectName ?? "Proyecto"}"`,
+              project_id: projectId,
+            });
+          }
         },
       },
     );
@@ -109,7 +128,7 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
             <p className="text-sm font-medium">No hay comentarios aún</p>
             <p className="text-xs text-center max-w-xs">
               Escribe el primer mensaje. Tu cliente también puede comentar desde
-              el enlace público.
+              su portal.
             </p>
           </motion.div>
         )}
@@ -126,7 +145,6 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
                 exit={{ opacity: 0, y: -10 }}
                 className={`flex gap-2 group ${isFromMe ? "flex-row-reverse" : "flex-row"}`}
               >
-                {/* Avatar */}
                 <div
                   className={`shrink-0 rounded-full p-1.5 h-8 w-8 flex items-center justify-center ${
                     isFromMe
@@ -141,7 +159,6 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
                   )}
                 </div>
 
-                {/* Bubble */}
                 <div
                   className={`flex flex-col max-w-[75%] gap-1 ${isFromMe ? "items-end" : "items-start"}`}
                 >
@@ -163,7 +180,6 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
                   >
                     {comment.message}
 
-                    {/* Delete button — only for own messages */}
                     {isFromMe && (
                       <button
                         onClick={() => setDeletingComment(comment)}

@@ -1,12 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Calendar,
-  User,
-  DollarSign,
-  Tag,
-} from "lucide-react";
+import { ArrowLeft, Calendar, User, DollarSign, Tag } from "lucide-react";
 import { useProject } from "@/hooks/useProjects";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +21,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+const statusVariants: {
+  [key: string]: "default" | "secondary" | "outline" | "destructive";
+} = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -192,7 +185,11 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="comentarios">
-          <CommentsTab projectId={project.id} />
+          <CommentsTab
+            projectId={project.id}
+            projectName={project.name}
+            projectOwnerId={project.user_id}
+          />
         </TabsContent>
       </Tabs>
     </div>

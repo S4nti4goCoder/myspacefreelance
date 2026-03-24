@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Project } from "@/types";
 import GlobalSearch from "@/components/shared/GlobalSearch";
+import { useEffect } from "react";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -51,6 +52,57 @@ async function fetchDashboardData() {
     clientCount: clientsRes.data?.length ?? 0,
     tasks: tasksRes.data ?? [],
   };
+}
+
+async function checkDueSoonNotifications(
+  projects: (Project & { client: { id: string; name: string } | null })[],
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) return;
+
+  const today = new Date();
+  const in3Days = new Date();
+  in3Days.setDate(today.getDate() + 3);
+
+  const dueSoonProjects = projects.filter((p) => {
+    if (!p.due_date || p.status === "done" || p.status === "cancelled")
+      return false;
+    const due = new Date(p.due_date);
+    return due >= today && due <= in3Days;
+  });
+
+  for (const project of dueSoonProjects) {
+    // Check if notification already exists for today
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("project_id", project.id)
+      .eq("type", "due_soon")
+      .gte("created_at", new Date().toISOString().split("T")[0])
+      .limit(1);
+
+    if (existing && existing.length > 0) continue;
+
+    const daysLeft = Math.ceil(
+      (new Date(project.due_date!).getTime() - today.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+
+    await supabase.from("notifications").insert({
+      user_id: session.user.id,
+      type: "due_soon",
+      title:
+        daysLeft === 0
+          ? "¡Entrega hoy!"
+          : `Entrega en ${daysLeft} día${daysLeft === 1 ? "" : "s"}`,
+      message: `El proyecto "${project.name}" vence ${daysLeft === 0 ? "hoy" : `en ${daysLeft} día${daysLeft === 1 ? "" : "s"}`}.`,
+      project_id: project.id,
+    });
+  }
 }
 
 export default function DashboardPage() {
@@ -106,6 +158,12 @@ export default function DashboardPage() {
       bg: "bg-orange-500/10",
     },
   ];
+  
+  useEffect(() => {
+    if (data?.projects) {
+      checkDueSoonNotifications(data.projects);
+    }
+  }, [data?.projects]);
 
   if (isLoading) {
     return (

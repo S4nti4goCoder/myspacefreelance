@@ -73,10 +73,29 @@ async function deleteProject(id: string) {
     await supabase.storage.from("project-files").remove(filePaths);
   }
 
-  // Then delete the project (cascade deletes tasks, docs, attachments, payments, comments)
   const { error } = await supabase.from("projects").delete().eq("id", id);
-
   if (error) throw error;
+}
+
+async function notifyProjectDone(project: Project) {
+  // Get all clients assigned to this project
+  const { data: projectClients } = await supabase
+    .from("project_clients")
+    .select("client_id")
+    .eq("project_id", project.id);
+
+  if (!projectClients || projectClients.length === 0) return;
+
+  // Insert notification for each client
+  const notifications = projectClients.map((pc: { client_id: string }) => ({
+    user_id: pc.client_id,
+    type: "project_done",
+    title: "¡Proyecto completado!",
+    message: `El proyecto "${project.name}" ha sido marcado como completado.`,
+    project_id: project.id,
+  }));
+
+  await supabase.from("notifications").insert(notifications);
 }
 
 export function useProjects() {
@@ -120,6 +139,11 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["projects", data.id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Proyecto actualizado exitosamente");
+
+      // Notify clients when project is marked as done
+      if (data.status === "done") {
+        notifyProjectDone(data);
+      }
     },
     onError: () => {
       toast.error("Error al actualizar el proyecto");

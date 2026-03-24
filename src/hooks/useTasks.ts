@@ -39,7 +39,6 @@ async function updateTask({ id, ...task }: Partial<Task> & { id: string }) {
 
 async function deleteTask(id: string) {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
-
   if (error) throw error;
 }
 
@@ -53,6 +52,25 @@ async function updateTasksOrder(
       .eq("id", t.id),
   );
   await Promise.all(updates);
+}
+
+async function notifyTaskReview(task: Task) {
+  // Get project owner and project name
+  const { data: project } = await supabase
+    .from("projects")
+    .select("user_id, name")
+    .eq("id", task.project_id)
+    .single();
+
+  if (!project) return;
+
+  await supabase.from("notifications").insert({
+    user_id: project.user_id,
+    type: "task_review",
+    title: "Tarea lista para revisión",
+    message: `"${task.title}" en el proyecto "${project.name}"`,
+    project_id: task.project_id,
+  });
 }
 
 export function useTasks(projectId: string) {
@@ -80,30 +98,24 @@ export function useCreateTask() {
 }
 
 export function useUpdateTask() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: updateTask,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', data.project_id] })
-      queryClient.invalidateQueries({ queryKey: ['projects', data.project_id] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    },
-    onError: () => toast.error('Error al actualizar la tarea'),
-  })
-}
+      queryClient.invalidateQueries({ queryKey: ["tasks", data.project_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["projects", data.project_id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
-export function useDeleteTask() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: deleteTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success("Tarea eliminada");
+      // Notify when task moved to review
+      if (data.status === "review") {
+        notifyTaskReview(data);
+      }
     },
-    onError: () => toast.error("Error al eliminar la tarea"),
+    onError: () => toast.error("Error al actualizar la tarea"),
   });
 }
 
@@ -117,5 +129,18 @@ export function useUpdateTasksOrder() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
+  });
+}
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Tarea eliminada");
+    },
+    onError: () => toast.error("Error al eliminar la tarea"),
   });
 }
