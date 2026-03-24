@@ -61,6 +61,19 @@ async function updateProject({
 }
 
 async function deleteProject(id: string) {
+  const { data: attachments } = await supabase
+    .from("attachments")
+    .select("file_path")
+    .eq("project_id", id);
+
+  if (attachments && attachments.length > 0) {
+    const filePaths = attachments.map(
+      (a: { file_path: string }) => a.file_path,
+    );
+    await supabase.storage.from("project-files").remove(filePaths);
+  }
+
+  // Then delete the project (cascade deletes tasks, docs, attachments, payments, comments)
   const { error } = await supabase.from("projects").delete().eq("id", id);
 
   if (error) throw error;
