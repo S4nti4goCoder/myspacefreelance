@@ -60,7 +60,17 @@ async function registerClient({
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    if (
+      error.message.toLowerCase().includes("already registered") ||
+      error.message.toLowerCase().includes("already exists") ||
+      error.message.toLowerCase().includes("user already")
+    ) {
+      throw new Error("Ya existe una cuenta con este correo electrónico");
+    }
+    throw error;
+  }
+
   if (!data.user) throw new Error("No se pudo crear el usuario");
 
   const newUserId = data.user.id;
@@ -166,10 +176,9 @@ export function useRegisterClient() {
     mutationFn: registerClient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
-      toast.success("Cliente registrado exitosamente");
     },
     onError: (error: Error) => {
-      toast.error(`Error al registrar cliente: ${error.message}`);
+      toast.error(error.message || "Error al registrar cliente");
     },
   });
 }

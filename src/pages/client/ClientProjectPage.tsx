@@ -453,10 +453,7 @@ export default function ClientProjectPage() {
 
           {/* Comments */}
           <TabsContent value="comentarios">
-            <div
-              className="flex flex-col border border-border rounded-xl overflow-hidden"
-              style={{ height: "500px" }}
-            >
+            <div className="flex flex-col border border-border rounded-xl overflow-hidden h-100 sm:h-125">
               <div
                 ref={scrollRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4"
