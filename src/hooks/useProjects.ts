@@ -3,52 +3,98 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { Project, Profile } from "@/types";
 
+interface CreateProjectInput {
+  name: string;
+  description: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  status: Project["status"];
+  budget: number | null;
+  tags: string[];
+  clientId?: string | null;
+}
+
+interface UpdateProjectInput {
+  id: string;
+  clientId?: string | null;
+  name?: string;
+  description?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  status?: Project["status"];
+  budget?: number | null;
+  tags?: string[];
+  progress?: number;
+}
+
 async function fetchProjects() {
   const { data, error } = await supabase
     .from("projects")
-    .select("*, client:profiles(id, name, email, phone, notes, role)")
-    .eq("profiles.role", "client")
+    .select(
+      `*,
+      project_clients!left(
+        client:profiles(id, name, email, phone, notes, role, password_changed, created_at)
+      )`,
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as (Project & { client: Profile | null })[];
+
+  return (data ?? []).map((row) => {
+    const clientRow = row.project_clients?.[0];
+    const client = (clientRow?.client as Profile) ?? null;
+    const { project_clients: _pc, ...rest } = row;
+    return { ...rest, client } as Project & { client: Profile | null };
+  });
 }
 
 async function fetchProject(id: string) {
   const { data, error } = await supabase
     .from("projects")
-    .select("*, client:profiles(id, name, email, phone, notes, role)")
+    .select(
+      `*,
+      project_clients!left(
+        client:profiles(id, name, email, phone, notes, role, password_changed, created_at)
+      )`,
+    )
     .eq("id", id)
     .single();
 
   if (error) throw error;
-  return data as Project & { client: Profile | null };
+
+  const clientRow = data.project_clients?.[0];
+  const client = (clientRow?.client as Profile) ?? null;
+  const { project_clients: _pc, ...rest } = data;
+  return { ...rest, client } as Project & { client: Profile | null };
 }
 
-async function createProject(
-  project: Omit<
-    Project,
-    "id" | "user_id" | "created_at" | "share_token" | "progress"
-  >,
-) {
+async function createProject(input: CreateProjectInput) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
+  const { clientId, ...projectData } = input;
+
   const { data, error } = await supabase
     .from("projects")
-    .insert({ ...project, user_id: session!.user.id })
+    .insert({ ...projectData, user_id: session!.user.id })
     .select()
     .single();
 
   if (error) throw error;
+
+  if (clientId) {
+    await supabase
+      .from("project_clients")
+      .insert({ project_id: data.id, client_id: clientId });
+  }
+
   return data as Project;
 }
 
-async function updateProject({
-  id,
-  ...project
-}: Partial<Project> & { id: string }) {
+async function updateProject(input: UpdateProjectInput) {
+  const { id, clientId, ...project } = input;
+
   const { data, error } = await supabase
     .from("projects")
     .update(project)
@@ -57,6 +103,17 @@ async function updateProject({
     .single();
 
   if (error) throw error;
+
+  if (clientId !== undefined) {
+    await supabase.from("project_clients").delete().eq("project_id", id);
+
+    if (clientId) {
+      await supabase
+        .from("project_clients")
+        .insert({ project_id: id, client_id: clientId });
+    }
+  }
+
   return data as Project;
 }
 
@@ -78,7 +135,6 @@ async function deleteProject(id: string) {
 }
 
 async function notifyProjectDone(project: Project) {
-  // Get all clients assigned to this project
   const { data: projectClients } = await supabase
     .from("project_clients")
     .select("client_id")
@@ -86,7 +142,6 @@ async function notifyProjectDone(project: Project) {
 
   if (!projectClients || projectClients.length === 0) return;
 
-  // Insert notification for each client
   const notifications = projectClients.map((pc: { client_id: string }) => ({
     user_id: pc.client_id,
     type: "project_done",
@@ -121,6 +176,7 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       toast.success("Proyecto creado exitosamente");
     },
     onError: () => {
@@ -138,9 +194,10 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["projects", data.id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["client-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project-client-accounts"] });
       toast.success("Proyecto actualizado exitosamente");
 
-      // Notify clients when project is marked as done
       if (data.status === "done") {
         notifyProjectDone(data);
       }

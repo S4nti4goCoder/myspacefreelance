@@ -20,6 +20,7 @@ import {
   useDeleteProject,
 } from "@/hooks/useProjects";
 import ProjectForm from "@/components/shared/ProjectForm";
+import type { ProjectFormData } from "@/components/shared/ProjectForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,10 +44,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
+
+const statusVariants: Record<string, BadgeVariant> = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -61,11 +61,6 @@ const statusColors: Record<string, string> = {
   done: "text-green-500",
   cancelled: "text-destructive",
 };
-
-type ProjectFormData = Omit<
-  Project,
-  "id" | "user_id" | "created_at" | "share_token" | "progress"
->;
 
 export default function ProjectsPage() {
   const { data: projects, isLoading } = useProjects();
@@ -249,32 +244,31 @@ export default function ProjectsPage() {
                   )}
                   {project.budget && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="font-medium">$</span>
-                      <span>{formatBudget(project.budget)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatBudget(project.budget)}
+                      </span>
+                    </div>
+                  )}
+                  {project.tags && project.tags.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
+                      {project.tags.slice(0, 3).map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="text-xs h-4 px-1"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                      {project.tags.length > 3 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{project.tags.length - 3}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
-
-                {/* Tags */}
-                {project.tags && project.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    <Tag className="h-3 w-3 text-muted-foreground mt-0.5" />
-                    {project.tags.slice(0, 3).map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="outline"
-                        className="text-xs px-1.5 py-0"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                    {project.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0">
-                        +{project.tags.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-1 border-t border-border">
@@ -300,7 +294,7 @@ export default function ProjectsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs gap-1"
+                      className="h-7 gap-1 text-xs"
                     >
                       Ver detalle
                       <ArrowRight className="h-3 w-3" />
@@ -336,16 +330,21 @@ export default function ProjectsPage() {
           <DialogHeader>
             <DialogTitle>Editar proyecto</DialogTitle>
           </DialogHeader>
-          <ProjectForm
-            initialData={editingProject ?? undefined}
-            onSubmit={handleUpdate}
-            onCancel={() => setEditingProject(null)}
-            isLoading={updateProject.isPending}
-          />
+          {editingProject && (
+            <ProjectForm
+              initialData={{
+                ...editingProject,
+                clientId: editingProject.client?.id ?? null,
+              }}
+              onSubmit={handleUpdate}
+              onCancel={() => setEditingProject(null)}
+              isLoading={updateProject.isPending}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
+      {/* Delete confirmation */}
       <Dialog
         open={!!deletingProject}
         onOpenChange={(open) => !open && setDeletingProject(null)}
@@ -359,18 +358,14 @@ export default function ProjectsPage() {
             <DialogDescription>
               ¿Estás seguro de que deseas eliminar{" "}
               <span className="font-semibold text-foreground">
-                {deletingProject?.name}
+                "{deletingProject?.name}"
               </span>
-              ? Se eliminarán también todas las tareas, documentos y archivos
-              asociados.
+              ? Esta acción eliminará todas las tareas, documentos, archivos y
+              pagos asociados.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeletingProject(null)}
-              disabled={deleteProject.isPending}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingProject(null)}>
               Cancelar
             </Button>
             <Button

@@ -15,13 +15,19 @@ import {
 import { useClientAccounts } from "@/hooks/useClientAccounts";
 import type { Project } from "@/types";
 
-type ProjectFormData = Omit<
-  Project,
-  "id" | "user_id" | "created_at" | "share_token" | "progress"
->;
+export interface ProjectFormData {
+  name: string;
+  description: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  status: Project["status"];
+  budget: number | null;
+  tags: string[];
+  clientId: string | null;
+}
 
 interface ProjectFormProps {
-  initialData?: Partial<Project>;
+  initialData?: Partial<Project> & { clientId?: string | null };
   onSubmit: (data: ProjectFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -39,12 +45,12 @@ export default function ProjectForm({
   const [description, setDescription] = useState(
     initialData?.description ?? "",
   );
-  const [clientId, setClientId] = useState(
-    initialData?.profile_client_id ?? "",
-  );
+  const [clientId, setClientId] = useState(initialData?.clientId ?? "");
   const [startDate, setStartDate] = useState(initialData?.start_date ?? "");
   const [dueDate, setDueDate] = useState(initialData?.due_date ?? "");
-  const [status, setStatus] = useState(initialData?.status ?? "todo");
+  const [status, setStatus] = useState<Project["status"]>(
+    initialData?.status ?? "todo",
+  );
   const [budget, setBudget] = useState(initialData?.budget?.toString() ?? "");
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
@@ -52,7 +58,7 @@ export default function ProjectForm({
   useEffect(() => {
     setName(initialData?.name ?? "");
     setDescription(initialData?.description ?? "");
-    setClientId(initialData?.profile_client_id ?? "");
+    setClientId(initialData?.clientId ?? "");
     setStartDate(initialData?.start_date ?? "");
     setDueDate(initialData?.due_date ?? "");
     setStatus(initialData?.status ?? "todo");
@@ -81,11 +87,10 @@ export default function ProjectForm({
     onSubmit({
       name: name.trim(),
       description: description.trim() || null,
-      profile_client_id:
-        clientId === "none" || clientId === "" ? null : clientId,
+      clientId: clientId === "none" || clientId === "" ? null : clientId,
       start_date: startDate || null,
       due_date: dueDate || null,
-      status: status as Project["status"],
+      status,
       budget: budget ? parseFloat(budget) : null,
       tags,
     });
@@ -210,14 +215,18 @@ export default function ProjectForm({
           disabled={isLoading}
         />
         {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-1.5 pt-1">
             {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="gap-1">
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="gap-1 pr-1 text-xs"
+              >
                 {tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-destructive transition-colors"
+                  className="hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -227,7 +236,7 @@ export default function ProjectForm({
         )}
       </div>
 
-      <div className="flex gap-2 justify-end pt-2">
+      <div className="flex justify-end gap-2 pt-2">
         <Button
           type="button"
           variant="outline"
@@ -236,7 +245,7 @@ export default function ProjectForm({
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading || !name.trim()}>
+        <Button type="submit" disabled={!name.trim() || isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -21,7 +21,6 @@ export interface Profile {
 export interface Project {
   id: string;
   user_id: string;
-  profile_client_id: string | null;
   name: string;
   description: string | null;
   start_date: string | null;
@@ -32,6 +31,7 @@ export interface Project {
   share_token: string;
   tags: string[];
   created_at: string;
+  // Joined field – populated via project_clients in useProjects
   client?: Profile | null;
 }
 
