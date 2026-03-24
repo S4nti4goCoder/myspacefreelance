@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Project } from "@/types";
+import GlobalSearch from "@/components/shared/GlobalSearch";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -130,6 +131,9 @@ export default function DashboardPage() {
           Resumen de tu actividad freelance
         </p>
       </motion.div>
+
+      {/* Search */}
+      <GlobalSearch />
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
