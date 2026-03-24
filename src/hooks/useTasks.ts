@@ -80,15 +80,18 @@ export function useCreateTask() {
 }
 
 export function useUpdateTask() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: updateTask,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", data.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', data.project_id] })
+      queryClient.invalidateQueries({ queryKey: ['projects', data.project_id] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
-    onError: () => toast.error("Error al actualizar la tarea"),
-  });
+    onError: () => toast.error('Error al actualizar la tarea'),
+  })
 }
 
 export function useDeleteTask() {
@@ -111,6 +114,8 @@ export function useUpdateTasksOrder() {
     mutationFn: updateTasksOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

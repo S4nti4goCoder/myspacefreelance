@@ -14,6 +14,7 @@ export interface Profile {
   role: UserRole;
   phone: string | null;
   notes: string | null;
+  password_changed: boolean;
   created_at: string;
 }
 

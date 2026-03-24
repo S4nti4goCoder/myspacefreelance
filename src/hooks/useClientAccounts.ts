@@ -47,7 +47,11 @@ async function registerClient({
   phone?: string;
   notes?: string;
 }) {
-  // Use signUp to create the user properly
+  // Save freelancer session before signUp
+  const {
+    data: { session: freelancerSession },
+  } = await supabase.auth.getSession();
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -59,19 +63,25 @@ async function registerClient({
   if (error) throw error;
   if (!data.user) throw new Error("No se pudo crear el usuario");
 
+  const newUserId = data.user.id;
+
   // Update phone and notes in profile
   if (phone || notes) {
     await supabase
       .from("profiles")
       .update({ phone: phone || null, notes: notes || null })
-      .eq("id", data.user.id);
+      .eq("id", newUserId);
   }
 
-  // Sign out immediately so the freelancer session is not affected
-  await supabase.auth.signOut();
+  // Restore freelancer session immediately
+  if (freelancerSession) {
+    await supabase.auth.setSession({
+      access_token: freelancerSession.access_token,
+      refresh_token: freelancerSession.refresh_token,
+    });
+  }
 
-  // Re-login as freelancer is handled by the session
-  return data.user.id;
+  return newUserId;
 }
 
 async function updateClientProfile({

@@ -14,6 +14,7 @@ import {
   Phone,
   FileText,
   Pencil,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import {
   useRemoveProjectFromClient,
 } from "@/hooks/useClientAccounts";
 import { useProjects } from "@/hooks/useProjects";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Profile } from "@/types";
 
@@ -136,7 +138,11 @@ export default function ClientAccountsPage() {
   const [editingClient, setEditingClient] = useState<Profile | null>(null);
   const [deletingClient, setDeletingClient] = useState<Profile | null>(null);
   const [managingClient, setManagingClient] = useState<Profile | null>(null);
+  const [resetClient, setResetClient] = useState<Profile | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newResetPassword, setNewResetPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -171,6 +177,12 @@ export default function ClientAccountsPage() {
       phone: client.phone ?? "",
       notes: client.notes ?? "",
     });
+  };
+
+  const handleOpenReset = (client: Profile) => {
+    setResetClient(client);
+    setNewResetPassword(generatePassword());
+    setShowResetPassword(false);
   };
 
   const handleCreate = () => {
@@ -225,6 +237,37 @@ export default function ClientAccountsPage() {
     const text = `Credenciales de acceso — MySpaceFreelance\nEmail: ${createForm.email}\nContraseña: ${createForm.password}\nURL: ${window.location.origin}/login`;
     navigator.clipboard.writeText(text);
     toast.success("Credenciales copiadas al portapapeles");
+  };
+
+  const handleCopyResetCredentials = () => {
+    const text = `Credenciales actualizadas — MySpaceFreelance\nEmail: ${resetClient?.email}\nNueva contraseña: ${newResetPassword}\nURL: ${window.location.origin}/login`;
+    navigator.clipboard.writeText(text);
+    toast.success("Credenciales copiadas al portapapeles");
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetClient) return;
+    setIsResetting(true);
+
+    const { error } = await supabase.rpc("reset_client_password", {
+      client_id: resetClient.id,
+      new_password: newResetPassword,
+    });
+
+    if (error) {
+      toast.error("Error al restablecer la contraseña");
+    } else {
+      await supabase
+        .from("profiles")
+        .update({ password_changed: false })
+        .eq("id", resetClient.id);
+
+      toast.success(
+        "Contraseña restablecida. El cliente deberá cambiarla en su próximo inicio de sesión.",
+      );
+      setResetClient(null);
+    }
+    setIsResetting(false);
   };
 
   return (
@@ -312,6 +355,14 @@ export default function ClientAccountsPage() {
                       onClick={() => handleOpenEdit(client)}
                     >
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-blue-500 hover:text-blue-500 hover:bg-blue-500/10"
+                      onClick={() => handleOpenReset(client)}
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -545,6 +596,83 @@ export default function ClientAccountsPage() {
               disabled={!editForm.name.trim() || updateClient.isPending}
             >
               {updateClient.isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset password dialog */}
+      <Dialog
+        open={!!resetClient}
+        onOpenChange={(open) => !open && setResetClient(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Restablecer contraseña</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Se generará una nueva contraseña para{" "}
+              <span className="font-semibold text-foreground">
+                {resetClient?.name}
+              </span>
+              . El cliente deberá cambiarla en su próximo inicio de sesión.
+            </p>
+            <div className="space-y-2">
+              <Label>Nueva contraseña generada</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showResetPassword ? "text" : "password"}
+                    value={newResetPassword}
+                    onChange={(e) => setNewResetPassword(e.target.value)}
+                    className="pr-8"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword((p) => !p)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showResetPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setNewResetPassword(generatePassword())}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleCopyResetCredentials}
+              type="button"
+            >
+              Copiar credenciales para compartir
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResetClient(null)}
+              disabled={isResetting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={!newResetPassword || isResetting}
+            >
+              {isResetting ? "Restableciendo..." : "Restablecer contraseña"}
             </Button>
           </DialogFooter>
         </DialogContent>

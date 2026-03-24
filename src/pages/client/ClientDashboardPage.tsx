@@ -11,6 +11,9 @@ import {
   Sun,
   Moon,
   Monitor,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -19,6 +22,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
@@ -26,6 +31,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import type { Project } from "@/types";
@@ -38,10 +50,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+const statusVariants: {
+  [key: string]: "default" | "secondary" | "outline" | "destructive";
+} = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -64,8 +75,21 @@ export default function ClientDashboardPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+
+  useEffect(() => {
+    if (profile && profile.role === "client" && !profile.password_changed) {
+      setIsPasswordOpen(true);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
@@ -111,12 +135,50 @@ export default function ClientDashboardPage() {
     navigate("/login");
   };
 
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({
+      password: passwordForm.newPassword,
+    });
+
+    if (error) {
+      toast.error("Error al cambiar la contraseña");
+      setIsChangingPassword(false);
+      return;
+    }
+
+    await supabase
+      .from("profiles")
+      .update({ password_changed: true })
+      .eq("id", user!.id);
+
+    useAuthStore.getState().setProfile({
+      ...profile!,
+      password_changed: true,
+    });
+
+    toast.success("Contraseña actualizada exitosamente");
+    setIsPasswordOpen(false);
+    setPasswordForm({ newPassword: "", confirmPassword: "" });
+    setIsChangingPassword(false);
+  };
+
   const activeProjects = projects.filter((p) => p.status === "progress").length;
   const completedProjects = projects.filter((p) => p.status === "done").length;
+  const isPasswordRequired =
+    profile?.role === "client" && !profile?.password_changed;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -150,6 +212,16 @@ export default function ClientDashboardPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsPasswordOpen(true)}
+              className="gap-2"
+            >
+              <KeyRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Cambiar contraseña</span>
+            </Button>
 
             <Button
               variant="ghost"
@@ -279,6 +351,99 @@ export default function ClientDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Change password dialog */}
+      <Dialog
+        open={isPasswordOpen}
+        onOpenChange={(open) => {
+          if (!isPasswordRequired) setIsPasswordOpen(open);
+        }}
+      >
+        <DialogContent
+          className={`max-w-sm ${isPasswordRequired ? "[&>button]:hidden" : ""}`}
+          onInteractOutside={(e) => {
+            if (isPasswordRequired) e.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {isPasswordRequired
+                ? "⚠️ Cambio de contraseña requerido"
+                : "Cambiar contraseña"}
+            </DialogTitle>
+          </DialogHeader>
+          {isPasswordRequired && (
+            <p className="text-sm text-muted-foreground -mt-2">
+              Por seguridad debes cambiar tu contraseña antes de continuar.
+            </p>
+          )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nueva contraseña</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm((p) => ({
+                      ...p,
+                      newPassword: e.target.value,
+                    }))
+                  }
+                  className="pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((p) => !p)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar contraseña</Label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={passwordForm.confirmPassword}
+                onChange={(e) =>
+                  setPasswordForm((p) => ({
+                    ...p,
+                    confirmPassword: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            {!isPasswordRequired && (
+              <Button
+                variant="outline"
+                onClick={() => setIsPasswordOpen(false)}
+                disabled={isChangingPassword}
+              >
+                Cancelar
+              </Button>
+            )}
+            <Button
+              onClick={handleChangePassword}
+              disabled={
+                !passwordForm.newPassword ||
+                !passwordForm.confirmPassword ||
+                isChangingPassword
+              }
+            >
+              {isChangingPassword ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
