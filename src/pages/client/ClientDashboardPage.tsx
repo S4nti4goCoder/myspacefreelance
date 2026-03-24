@@ -60,6 +60,24 @@ function formatDate(date: string | null) {
   });
 }
 
+async function fetchClientProjects(clientId: string): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from("project_clients")
+    .select("project_id")
+    .eq("client_id", clientId);
+
+  if (error || !data || data.length === 0) return [];
+
+  const projectIds = data.map((d: { project_id: string }) => d.project_id);
+
+  const { data: projectsData } = await supabase
+    .from("projects")
+    .select("*")
+    .in("id", projectIds);
+
+  return projectsData ?? [];
+}
+
 export default function ClientDashboardPage() {
   const { user, profile } = useAuthStore();
   const navigate = useNavigate();
@@ -79,40 +97,56 @@ export default function ClientDashboardPage() {
     }
   }, [profile]);
 
+  // Initial load
   useEffect(() => {
     if (!user) return;
 
     async function loadProjects() {
       setIsLoading(true);
-
-      const { data, error } = await supabase
-        .from("project_clients")
-        .select("project_id")
-        .eq("client_id", user!.id);
-
-      if (error || !data) {
-        setIsLoading(false);
-        return;
-      }
-
-      const projectIds = data.map((d: { project_id: string }) => d.project_id);
-
-      if (projectIds.length === 0) {
-        setProjects([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: projectsData } = await supabase
-        .from("projects")
-        .select("*")
-        .in("id", projectIds);
-
-      setProjects(projectsData ?? []);
+      const data = await fetchClientProjects(user!.id);
+      setProjects(data);
       setIsLoading(false);
     }
 
     loadProjects();
+  }, [user]);
+
+  // Realtime — listen for project assignment changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`client-projects:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "project_clients",
+          filter: `client_id=eq.${user.id}`,
+        },
+        async () => {
+          const data = await fetchClientProjects(user.id);
+          setProjects(data);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "project_clients",
+        },
+        async () => {
+          const data = await fetchClientProjects(user.id);
+          setProjects(data);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleLogout = async () => {
