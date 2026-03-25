@@ -11,6 +11,8 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Calendar,
+  Tag,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -31,7 +33,7 @@ import {
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import type { Project } from "@/types";
+import type { Project, Task } from "@/types";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -41,9 +43,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: {
-  [key: string]: "default" | "secondary" | "outline" | "destructive";
-} = {
+type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
+
+const statusVariants: Record<string, BadgeVariant> = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -51,8 +53,16 @@ const statusVariants: {
   cancelled: "destructive",
 };
 
+const statusColors: Record<string, string> = {
+  todo: "text-muted-foreground",
+  progress: "text-blue-500",
+  review: "text-orange-500",
+  done: "text-green-500",
+  cancelled: "text-destructive",
+};
+
 function formatDate(date: string | null) {
-  if (!date) return "—";
+  if (!date) return null;
   return new Date(date).toLocaleDateString("es-CO", {
     day: "2-digit",
     month: "long",
@@ -60,7 +70,13 @@ function formatDate(date: string | null) {
   });
 }
 
-async function fetchClientProjects(clientId: string): Promise<Project[]> {
+interface ProjectWithTasks extends Project {
+  tasks: Task[];
+}
+
+async function fetchClientProjectsWithTasks(
+  clientId: string,
+): Promise<ProjectWithTasks[]> {
   const { data, error } = await supabase
     .from("project_clients")
     .select("project_id")
@@ -73,15 +89,26 @@ async function fetchClientProjects(clientId: string): Promise<Project[]> {
   const { data: projectsData } = await supabase
     .from("projects")
     .select("*")
-    .in("id", projectIds);
+    .in("id", projectIds)
+    .order("created_at", { ascending: false });
 
-  return projectsData ?? [];
+  if (!projectsData || projectsData.length === 0) return [];
+
+  const { data: tasksData } = await supabase
+    .from("tasks")
+    .select("*")
+    .in("project_id", projectIds);
+
+  return projectsData.map((project) => ({
+    ...project,
+    tasks: (tasksData ?? []).filter((t: Task) => t.project_id === project.id),
+  }));
 }
 
 export default function ClientDashboardPage() {
   const { user, profile } = useAuthStore();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectWithTasks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -97,13 +124,12 @@ export default function ClientDashboardPage() {
     }
   }, [profile]);
 
-  // Initial load
   useEffect(() => {
     if (!user) return;
 
     async function loadProjects() {
       setIsLoading(true);
-      const data = await fetchClientProjects(user!.id);
+      const data = await fetchClientProjectsWithTasks(user!.id);
       setProjects(data);
       setIsLoading(false);
     }
@@ -126,7 +152,7 @@ export default function ClientDashboardPage() {
           filter: `client_id=eq.${user.id}`,
         },
         async () => {
-          const data = await fetchClientProjects(user.id);
+          const data = await fetchClientProjectsWithTasks(user.id);
           setProjects(data);
         },
       )
@@ -138,7 +164,7 @@ export default function ClientDashboardPage() {
           table: "project_clients",
         },
         async () => {
-          const data = await fetchClientProjects(user.id);
+          const data = await fetchClientProjectsWithTasks(user.id);
           setProjects(data);
         },
       )
@@ -217,7 +243,6 @@ export default function ClientDashboardPage() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-
             <Button
               variant="ghost"
               size="sm"
@@ -227,7 +252,6 @@ export default function ClientDashboardPage() {
               <KeyRound className="h-4 w-4" />
               <span className="hidden sm:inline">Cambiar contraseña</span>
             </Button>
-
             <Button
               variant="ghost"
               size="sm"
@@ -252,10 +276,11 @@ export default function ClientDashboardPage() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="bg-blue-500/10 rounded-lg p-2">
+              <div className="bg-blue-500/10 rounded-lg p-2 shrink-0">
                 <FolderKanban className="h-4 w-4 text-blue-500" />
               </div>
               <div>
@@ -266,7 +291,7 @@ export default function ClientDashboardPage() {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="bg-orange-500/10 rounded-lg p-2">
+              <div className="bg-orange-500/10 rounded-lg p-2 shrink-0">
                 <Clock className="h-4 w-4 text-orange-500" />
               </div>
               <div>
@@ -277,7 +302,7 @@ export default function ClientDashboardPage() {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="bg-green-500/10 rounded-lg p-2">
+              <div className="bg-green-500/10 rounded-lg p-2 shrink-0">
                 <CheckSquare className="h-4 w-4 text-green-500" />
               </div>
               <div>
@@ -290,10 +315,11 @@ export default function ClientDashboardPage() {
 
         <Separator />
 
+        {/* Projects list */}
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />
+              <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />
             ))}
           </div>
         ) : projects.length === 0 ? (
@@ -302,57 +328,108 @@ export default function ClientDashboardPage() {
               <FolderKanban className="h-8 w-8" />
             </div>
             <p className="font-medium">No tienes proyectos asignados aún</p>
+            <p className="text-sm text-center max-w-xs">
+              Cuando tu freelancer te asigne un proyecto aparecerá aquí
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {projects.map((project, i) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link to={`/cliente/proyecto/${project.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-foreground">
+            {projects.map((project, i) => {
+              const doneTasks = project.tasks.filter(
+                (t) => t.status === "done",
+              ).length;
+              const totalTasks = project.tasks.length;
+
+              return (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Link to={`/cliente/proyecto/${project.id}`}>
+                    <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+                      <CardContent className="p-4 space-y-3">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground truncate">
                               {project.name}
                             </p>
+                            {project.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                {project.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
                             <Badge variant={statusVariants[project.status]}>
                               {statusLabels[project.status]}
                             </Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          {project.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {project.description}
-                            </p>
-                          )}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Progreso</span>
-                              <span>{project.progress}%</span>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              Progreso general
+                            </span>
+                            <span
+                              className={`font-medium ${statusColors[project.status]}`}
+                            >
+                              {project.progress}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={project.progress}
+                            className="h-1.5"
+                          />
+                        </div>
+
+                        {/* Meta */}
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          {totalTasks > 0 && (
+                            <div className="flex items-center gap-1">
+                              <CheckSquare className="h-3 w-3" />
+                              <span>
+                                {doneTasks}/{totalTasks} tareas
+                              </span>
                             </div>
-                            <Progress
-                              value={project.progress}
-                              className="h-1.5"
-                            />
-                          </div>
+                          )}
                           {project.due_date && (
-                            <p className="text-xs text-muted-foreground">
-                              Entrega: {formatDate(project.due_date)}
-                            </p>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>
+                                Entrega: {formatDate(project.due_date)}
+                              </span>
+                            </div>
+                          )}
+                          {project.tags && project.tags.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Tag className="h-3 w-3" />
+                              {project.tags.slice(0, 2).map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="outline"
+                                  className="text-xs h-4 px-1"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {project.tags.length > 2 && (
+                                <span>+{project.tags.length - 2}</span>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

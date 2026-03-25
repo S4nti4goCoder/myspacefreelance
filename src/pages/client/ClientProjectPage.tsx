@@ -13,6 +13,8 @@ import {
   User,
   Bot,
   Download,
+  DollarSign,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -37,9 +39,9 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-const statusVariants: {
-  [key: string]: "default" | "secondary" | "outline" | "destructive";
-} = {
+type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
+
+const statusVariants: Record<string, BadgeVariant> = {
   todo: "secondary",
   progress: "default",
   review: "outline",
@@ -47,12 +49,34 @@ const statusVariants: {
   cancelled: "destructive",
 };
 
+const taskStatusColors: Record<string, string> = {
+  todo: "bg-muted-foreground",
+  progress: "bg-blue-500",
+  review: "bg-orange-500",
+  done: "bg-green-500",
+};
+
+const taskColumns: { id: Task["status"]; label: string; color: string }[] = [
+  { id: "todo", label: "Pendiente", color: "text-muted-foreground" },
+  { id: "progress", label: "En progreso", color: "text-blue-500" },
+  { id: "review", label: "En revisión", color: "text-orange-500" },
+  { id: "done", label: "Completado", color: "text-green-500" },
+];
+
 function formatDate(date: string | null) {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("es-CO", {
     day: "2-digit",
     month: "long",
     year: "numeric",
+  });
+}
+
+function formatDateShort(date: string | null) {
+  if (!date) return null;
+  return new Date(date).toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "short",
   });
 }
 
@@ -75,6 +99,14 @@ function formatSize(bytes: number | null) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatCOP(amount: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export default function ClientProjectPage() {
@@ -105,7 +137,11 @@ export default function ClientProjectPage() {
             .select("*")
             .eq("project_id", id)
             .order("order_index"),
-          supabase.from("documents").select("*").eq("project_id", id),
+          supabase
+            .from("documents")
+            .select("*")
+            .eq("project_id", id)
+            .order("updated_at", { ascending: false }),
           supabase.from("attachments").select("*").eq("project_id", id),
           supabase
             .from("comments")
@@ -217,7 +253,7 @@ export default function ClientProjectPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="bg-primary rounded-lg p-1.5">
+          <div className="bg-primary rounded-lg p-1.5 shrink-0">
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="min-w-0 flex-1">
@@ -250,11 +286,18 @@ export default function ClientProjectPage() {
             <p className="text-muted-foreground">{project.description}</p>
           )}
 
+          {/* Meta info */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {project.due_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
                 <span>Entrega: {formatDate(project.due_date)}</span>
+              </div>
+            )}
+            {project.budget && (
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="h-4 w-4" />
+                <span>{formatCOP(project.budget)}</span>
               </div>
             )}
             {project.tags && project.tags.length > 0 && (
@@ -281,10 +324,10 @@ export default function ClientProjectPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Card>
               <CardContent className="p-3 flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-green-500" />
+                <CheckSquare className="h-4 w-4 text-green-500 shrink-0" />
                 <div>
                   <p className="text-xs text-muted-foreground">Tareas</p>
                   <p className="font-semibold">
@@ -295,7 +338,7 @@ export default function ClientProjectPage() {
             </Card>
             <Card>
               <CardContent className="p-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-500" />
+                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
                 <div>
                   <p className="text-xs text-muted-foreground">Documentos</p>
                   <p className="font-semibold">{documents.length}</p>
@@ -304,7 +347,7 @@ export default function ClientProjectPage() {
             </Card>
             <Card>
               <CardContent className="p-3 flex items-center gap-2">
-                <Paperclip className="h-4 w-4 text-violet-500" />
+                <Paperclip className="h-4 w-4 text-violet-500 shrink-0" />
                 <div>
                   <p className="text-xs text-muted-foreground">Archivos</p>
                   <p className="font-semibold">{attachments.length}</p>
@@ -319,58 +362,108 @@ export default function ClientProjectPage() {
         {/* Tabs */}
         <Tabs defaultValue="tareas">
           <TabsList className="mb-4 w-full sm:w-auto">
-            <TabsTrigger value="tareas">Tareas</TabsTrigger>
-            <TabsTrigger value="documentos">Documentos</TabsTrigger>
-            <TabsTrigger value="archivos">Archivos</TabsTrigger>
+            <TabsTrigger value="tareas">
+              Tareas
+              {tasks.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1.5 text-xs px-1.5 py-0"
+                >
+                  {tasks.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="documentos">
+              Documentos
+              {documents.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1.5 text-xs px-1.5 py-0"
+                >
+                  {documents.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="archivos">
+              Archivos
+              {attachments.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1.5 text-xs px-1.5 py-0"
+                >
+                  {attachments.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="comentarios">Comentarios</TabsTrigger>
           </TabsList>
 
-          {/* Tasks */}
-          <TabsContent value="tareas" className="space-y-3">
+          {/* Tasks — grouped by status */}
+          <TabsContent value="tareas" className="space-y-6">
             {tasks.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No hay tareas aún
               </p>
             ) : (
-              tasks.map((task, i) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div
-                        className={`h-2 w-2 rounded-full shrink-0 ${
-                          task.status === "done"
-                            ? "bg-green-500"
-                            : task.status === "progress"
-                              ? "bg-blue-500"
-                              : task.status === "review"
-                                ? "bg-orange-500"
-                                : "bg-muted-foreground"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`font-medium ${task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}
-                        >
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {statusLabels[task.status]}
+              taskColumns.map((col) => {
+                const colTasks = tasks.filter((t) => t.status === col.id);
+                if (colTasks.length === 0) return null;
+
+                return (
+                  <div key={col.id} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold ${col.color}`}>
+                        {col.label}
+                      </span>
+                      <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                        {colTasks.length}
                       </Badge>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
+                    </div>
+                    <div className="space-y-2">
+                      {colTasks.map((task, i) => (
+                        <motion.div
+                          key={task.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                        >
+                          <Card>
+                            <CardContent className="p-4 flex items-center gap-3">
+                              <div
+                                className={`h-2 w-2 rounded-full shrink-0 ${taskStatusColors[task.status]}`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`font-medium text-sm ${
+                                    task.status === "done"
+                                      ? "line-through text-muted-foreground"
+                                      : "text-foreground"
+                                  }`}
+                                >
+                                  {task.title}
+                                </p>
+                                {task.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                    {task.description}
+                                  </p>
+                                )}
+                                {task.due_date && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatDateShort(task.due_date)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </TabsContent>
 
@@ -384,7 +477,12 @@ export default function ClientProjectPage() {
               documents.map((doc) => (
                 <Card key={doc.id}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{doc.title}</CardTitle>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base">{doc.title}</CardTitle>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        Actualizado {formatTime(doc.updated_at)}
+                      </span>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -413,7 +511,7 @@ export default function ClientProjectPage() {
                   return (
                     <Card key={attachment.id} className="overflow-hidden">
                       {isImage && (
-                        <div className="h-36 overflow-hidden">
+                        <div className="h-40 overflow-hidden bg-muted">
                           <img
                             src={fileUrl}
                             alt={attachment.file_name}
@@ -489,7 +587,9 @@ export default function ClientProjectPage() {
                         )}
                       </div>
                       <div
-                        className={`flex flex-col max-w-[75%] gap-1 ${isFromClient ? "items-end" : "items-start"}`}
+                        className={`flex flex-col max-w-[75%] gap-1 ${
+                          isFromClient ? "items-end" : "items-start"
+                        }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground font-medium">
