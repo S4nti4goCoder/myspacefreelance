@@ -28,6 +28,7 @@ import {
   useUpdatePayment,
   useDeletePayment,
 } from "@/hooks/usePayments";
+import { formatCOP, formatDate } from "@/lib/utils";
 import type { Payment } from "@/types";
 
 const PAYMENT_METHODS = [
@@ -75,22 +76,6 @@ interface PaymentsTabProps {
   projectId: string;
 }
 
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 const emptyForm: PaymentFormData = {
   amount: "",
   payment_date: new Date().toISOString().split("T")[0],
@@ -99,7 +84,6 @@ const emptyForm: PaymentFormData = {
   notes: "",
 };
 
-// Guardamos el concepto al inicio del campo notes con separador "|"
 function encodeNotes(concept: string, notes: string): string {
   return notes.trim() ? `${concept} | ${notes.trim()}` : concept;
 }
@@ -171,9 +155,7 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
         method: form.method || null,
         notes: encodeNotes(form.concept, form.notes),
       },
-      {
-        onSuccess: () => setEditingPayment(null),
-      },
+      { onSuccess: () => setEditingPayment(null) },
     );
   };
 

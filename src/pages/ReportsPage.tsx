@@ -14,6 +14,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { formatCOP, formatCOPShort } from "@/lib/utils";
 import type { Project, Payment } from "@/types";
 
 interface ProjectWithPayments extends Omit<Project, "client"> {
@@ -36,13 +37,11 @@ async function fetchReportsData() {
   const projects = (projectsRes.data ?? []) as ProjectWithPayments[];
   const payments = (paymentsRes.data ?? []) as Payment[];
 
-  // Attach payments to projects
   const projectsWithPayments = projects.map((p) => ({
     ...p,
     payments: payments.filter((pay) => pay.project_id === p.id),
   }));
 
-  // Group payments by month
   const paymentsByMonth: Record<string, number> = {};
   payments.forEach((payment) => {
     const date = new Date(payment.payment_date);
@@ -73,24 +72,6 @@ async function fetchReportsData() {
     totalCollected,
     totalBudget,
   };
-}
-
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatCOPShort(amount: number) {
-  if (amount >= 1_000_000) {
-    return `$${(amount / 1_000_000).toFixed(1)}M`;
-  }
-  if (amount >= 1_000) {
-    return `$${(amount / 1_000).toFixed(0)}K`;
-  }
-  return `$${amount}`;
 }
 
 const statusLabels: Record<string, string> = {
@@ -137,15 +118,12 @@ export default function ReportsPage() {
     totalCollected = 0,
     totalBudget = 0,
   } = data ?? {};
-
   const collectedPercent =
     totalBudget > 0 ? Math.round((totalCollected / totalBudget) * 100) : 0;
-
   const projectsWithBudget = projects.filter((p) => p.budget && p.budget > 0);
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -320,7 +298,6 @@ export default function ReportsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Table header */}
                 <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b border-border">
                   <div className="col-span-4">Proyecto</div>
                   <div className="col-span-2 text-right">Presupuesto</div>
@@ -328,8 +305,6 @@ export default function ReportsPage() {
                   <div className="col-span-2 text-right">Pendiente</div>
                   <div className="col-span-2 text-right">Estado</div>
                 </div>
-
-                {/* Table rows */}
                 {projectsWithBudget.map((project, i) => {
                   const collected = project.payments.reduce(
                     (sum, p) => sum + p.amount,
@@ -367,11 +342,7 @@ export default function ReportsPage() {
                           {formatCOP(collected)}
                         </div>
                         <div
-                          className={`col-span-2 text-right text-xs font-medium ${
-                            pending > 0
-                              ? "text-orange-500"
-                              : "text-muted-foreground"
-                          }`}
+                          className={`col-span-2 text-right text-xs font-medium ${pending > 0 ? "text-orange-500" : "text-muted-foreground"}`}
                         >
                           {formatCOP(Math.max(0, pending))}
                         </div>

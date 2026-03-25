@@ -45,6 +45,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { formatDateShort, formatCOP } from "@/lib/utils";
 import type { Project } from "@/types";
 
 const statusLabels: Record<string, string> = {
@@ -206,24 +207,6 @@ export default function ProjectsPage() {
     });
   };
 
-  const formatDate = (date: string | null) => {
-    if (!date) return null;
-    return new Date(date).toLocaleDateString("es-CO", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatBudget = (budget: number | null) => {
-    if (!budget) return null;
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      maximumFractionDigits: 0,
-    }).format(budget);
-  };
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -247,7 +230,6 @@ export default function ProjectsPage() {
 
       {/* Filters */}
       <div className="space-y-3">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -266,9 +248,7 @@ export default function ProjectsPage() {
           )}
         </div>
 
-        {/* Filter row */}
         <div className="flex flex-wrap gap-2 items-center">
-          {/* Status filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 gap-2">
@@ -303,7 +283,6 @@ export default function ProjectsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Client filter */}
           {clientOptions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -336,7 +315,6 @@ export default function ProjectsPage() {
             </DropdownMenu>
           )}
 
-          {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 gap-2">
@@ -363,7 +341,6 @@ export default function ProjectsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Clear filters */}
           <AnimatePresence>
             {activeFiltersCount > 0 && (
               <motion.div
@@ -442,7 +419,6 @@ export default function ProjectsPage() {
           >
             <Card className="hover:border-primary/50 transition-colors group">
               <CardContent className="p-4 space-y-3">
-                {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground truncate">
@@ -462,14 +438,12 @@ export default function ProjectsPage() {
                   </Badge>
                 </div>
 
-                {/* Description */}
                 {project.description && (
                   <p className="text-xs text-muted-foreground line-clamp-2">
                     {project.description}
                   </p>
                 )}
 
-                {/* Progress */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Progreso</span>
@@ -480,18 +454,17 @@ export default function ProjectsPage() {
                   <Progress value={project.progress} className="h-1.5" />
                 </div>
 
-                {/* Dates & budget */}
                 <div className="space-y-1">
                   {project.due_date && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3 shrink-0" />
-                      <span>Entrega: {formatDate(project.due_date)}</span>
+                      <span>Entrega: {formatDateShort(project.due_date)}</span>
                     </div>
                   )}
                   {project.budget && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <span className="font-medium text-foreground">
-                        {formatBudget(project.budget)}
+                        {formatCOP(project.budget)}
                       </span>
                     </div>
                   )}
@@ -516,7 +489,6 @@ export default function ProjectsPage() {
                   )}
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center justify-between pt-1 border-t border-border">
                   <div className="flex gap-1">
                     <Button

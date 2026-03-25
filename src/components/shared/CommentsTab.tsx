@@ -17,7 +17,7 @@ import {
   useDeleteComment,
 } from "@/hooks/useComments";
 import { useAuthStore } from "@/store/authStore";
-import { supabase } from "@/lib/supabase";
+import { formatRelativeTime } from "@/lib/utils";
 import type { Comment } from "@/types";
 
 interface CommentsTabProps {
@@ -26,26 +26,7 @@ interface CommentsTabProps {
   projectOwnerId?: string;
 }
 
-function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Ahora";
-  if (diffMins < 60) return `Hace ${diffMins}m`;
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays < 7) return `Hace ${diffDays}d`;
-  return date.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
-}
-
-export default function CommentsTab({
-  projectId,
-  projectName,
-  projectOwnerId,
-}: CommentsTabProps) {
+export default function CommentsTab({ projectId }: CommentsTabProps) {
   const { data: comments, isLoading } = useComments(projectId);
   const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
@@ -75,20 +56,9 @@ export default function CommentsTab({
         is_from_client: isClient,
       },
       {
-        onSuccess: async () => {
+        onSuccess: () => {
           setMessage("");
           textareaRef.current?.focus();
-
-          // If client sends message, notify the freelancer
-          if (isClient && projectOwnerId) {
-            await supabase.from("notifications").insert({
-              user_id: projectOwnerId,
-              type: "new_message",
-              title: `Nuevo mensaje de ${profile?.name ?? "Cliente"}`,
-              message: `En el proyecto "${projectName ?? "Proyecto"}"`,
-              project_id: projectId,
-            });
-          }
         },
       },
     );
@@ -167,7 +137,7 @@ export default function CommentsTab({
                       {comment.is_from_client ? comment.author : "Tú"}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {formatTime(comment.created_at)}
+                      {formatRelativeTime(comment.created_at)}
                     </span>
                   </div>
 

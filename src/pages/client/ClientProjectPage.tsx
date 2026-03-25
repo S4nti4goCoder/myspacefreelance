@@ -29,6 +29,12 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { getFileUrl } from "@/hooks/useAttachments";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import {
+  formatDate,
+  formatDateMini,
+  formatRelativeTime,
+  formatCOP,
+} from "@/lib/utils";
 import type { Project, Task, Document, Attachment, Comment } from "@/types";
 
 const statusLabels: Record<string, string> = {
@@ -63,50 +69,11 @@ const taskColumns: { id: Task["status"]; label: string; color: string }[] = [
   { id: "done", label: "Completado", color: "text-green-500" },
 ];
 
-function formatDate(date: string | null) {
-  if (!date) return "—";
-  return new Date(date).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatDateShort(date: string | null) {
-  if (!date) return null;
-  return new Date(date).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-
-function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMins < 1) return "Ahora";
-  if (diffMins < 60) return `Hace ${diffMins}m`;
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays < 7) return `Hace ${diffDays}d`;
-  return date.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
-}
-
 function formatSize(bytes: number | null) {
   if (!bytes) return "—";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 export default function ClientProjectPage() {
@@ -130,7 +97,6 @@ export default function ClientProjectPage() {
     async function loadData() {
       setIsLoading(true);
 
-      // Verificar acceso explícitamente antes de cargar
       const { data: accessCheck } = await supabase
         .from("project_clients")
         .select("id")
@@ -182,10 +148,8 @@ export default function ClientProjectPage() {
     loadData();
   }, [id, user, navigate]);
 
-  // Realtime comments
   useEffect(() => {
     if (!id) return;
-
     const channel = supabase
       .channel(`client-comments:${id}`)
       .on(
@@ -201,13 +165,11 @@ export default function ClientProjectPage() {
         },
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
   }, [id]);
 
-  // Auto scroll comments
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -217,14 +179,12 @@ export default function ClientProjectPage() {
   const handleSendComment = async () => {
     if (!message.trim() || !project || !profile) return;
     setIsSending(true);
-
     const { error } = await supabase.from("comments").insert({
       project_id: project.id,
       author: profile.name,
       message: message.trim(),
       is_from_client: true,
     });
-
     if (error) {
       toast.error("Error al enviar el mensaje");
     } else {
@@ -257,7 +217,6 @@ export default function ClientProjectPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
           <Button
@@ -282,7 +241,6 @@ export default function ClientProjectPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Project header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -301,7 +259,6 @@ export default function ClientProjectPage() {
             <p className="text-muted-foreground">{project.description}</p>
           )}
 
-          {/* Meta info */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {project.due_date && (
               <div className="flex items-center gap-1.5">
@@ -327,7 +284,6 @@ export default function ClientProjectPage() {
             )}
           </div>
 
-          {/* Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
@@ -338,7 +294,6 @@ export default function ClientProjectPage() {
             <Progress value={project.progress} className="h-3" />
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <Card>
               <CardContent className="p-3 flex items-center gap-2">
@@ -374,7 +329,6 @@ export default function ClientProjectPage() {
 
         <Separator />
 
-        {/* Tabs */}
         <Tabs defaultValue="tareas">
           <TabsList className="mb-4 w-full sm:w-auto">
             <TabsTrigger value="tareas">
@@ -413,7 +367,6 @@ export default function ClientProjectPage() {
             <TabsTrigger value="comentarios">Comentarios</TabsTrigger>
           </TabsList>
 
-          {/* Tasks — grouped by status */}
           <TabsContent value="tareas" className="space-y-6">
             {tasks.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -423,7 +376,6 @@ export default function ClientProjectPage() {
               taskColumns.map((col) => {
                 const colTasks = tasks.filter((t) => t.status === col.id);
                 if (colTasks.length === 0) return null;
-
                 return (
                   <div key={col.id} className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -449,11 +401,7 @@ export default function ClientProjectPage() {
                               />
                               <div className="flex-1 min-w-0">
                                 <p
-                                  className={`font-medium text-sm ${
-                                    task.status === "done"
-                                      ? "line-through text-muted-foreground"
-                                      : "text-foreground"
-                                  }`}
+                                  className={`font-medium text-sm ${task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}
                                 >
                                   {task.title}
                                 </p>
@@ -466,7 +414,7 @@ export default function ClientProjectPage() {
                                   <div className="flex items-center gap-1 mt-1">
                                     <Clock className="h-3 w-3 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                      {formatDateShort(task.due_date)}
+                                      {formatDateMini(task.due_date)}
                                     </span>
                                   </div>
                                 )}
@@ -482,7 +430,6 @@ export default function ClientProjectPage() {
             )}
           </TabsContent>
 
-          {/* Documents */}
           <TabsContent value="documentos" className="space-y-3">
             {documents.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -495,7 +442,7 @@ export default function ClientProjectPage() {
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base">{doc.title}</CardTitle>
                       <span className="text-xs text-muted-foreground shrink-0">
-                        Actualizado {formatTime(doc.updated_at)}
+                        Actualizado {formatRelativeTime(doc.updated_at)}
                       </span>
                     </div>
                   </CardHeader>
@@ -511,7 +458,6 @@ export default function ClientProjectPage() {
             )}
           </TabsContent>
 
-          {/* Attachments */}
           <TabsContent value="archivos">
             {attachments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -522,7 +468,6 @@ export default function ClientProjectPage() {
                 {attachments.map((attachment) => {
                   const isImage = attachment.mime_type?.startsWith("image/");
                   const fileUrl = getFileUrl(attachment.file_path);
-
                   return (
                     <Card key={attachment.id} className="overflow-hidden">
                       {isImage && (
@@ -543,7 +488,6 @@ export default function ClientProjectPage() {
                             {formatSize(attachment.size)}
                           </p>
                         </div>
-
                         <a
                           href={fileUrl}
                           download={attachment.file_name}
@@ -567,7 +511,6 @@ export default function ClientProjectPage() {
             )}
           </TabsContent>
 
-          {/* Comments */}
           <TabsContent value="comentarios">
             <div className="flex flex-col border border-border rounded-xl overflow-hidden h-100 sm:h-125">
               <div
@@ -589,11 +532,7 @@ export default function ClientProjectPage() {
                       className={`flex gap-2 ${isFromClient ? "flex-row-reverse" : "flex-row"}`}
                     >
                       <div
-                        className={`shrink-0 rounded-full p-1.5 h-8 w-8 flex items-center justify-center ${
-                          isFromClient
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
+                        className={`shrink-0 rounded-full p-1.5 h-8 w-8 flex items-center justify-center ${isFromClient ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
                       >
                         {isFromClient ? (
                           <User className="h-4 w-4" />
@@ -602,24 +541,18 @@ export default function ClientProjectPage() {
                         )}
                       </div>
                       <div
-                        className={`flex flex-col max-w-[75%] gap-1 ${
-                          isFromClient ? "items-end" : "items-start"
-                        }`}
+                        className={`flex flex-col max-w-[75%] gap-1 ${isFromClient ? "items-end" : "items-start"}`}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground font-medium">
                             {isFromClient ? "Tú" : "Freelancer"}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {formatTime(comment.created_at)}
+                            {formatRelativeTime(comment.created_at)}
                           </span>
                         </div>
                         <div
-                          className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                            isFromClient
-                              ? "bg-primary text-primary-foreground rounded-tr-sm"
-                              : "bg-muted text-foreground rounded-tl-sm"
-                          }`}
+                          className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isFromClient ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}
                         >
                           {comment.message}
                         </div>
@@ -628,7 +561,6 @@ export default function ClientProjectPage() {
                   );
                 })}
               </div>
-
               <div className="border-t border-border p-3 bg-card space-y-2">
                 <div className="flex gap-2 items-end">
                   <Textarea

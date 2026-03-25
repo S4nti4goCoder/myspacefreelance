@@ -33,6 +33,7 @@ import {
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "@/lib/utils";
 import type { Project, Task } from "@/types";
 
 const statusLabels: Record<string, string> = {
@@ -60,15 +61,6 @@ const statusColors: Record<string, string> = {
   done: "text-green-500",
   cancelled: "text-destructive",
 };
-
-function formatDate(date: string | null) {
-  if (!date) return null;
-  return new Date(date).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 interface ProjectWithTasks extends Project {
   tasks: Task[];
@@ -126,21 +118,17 @@ export default function ClientDashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-
     async function loadProjects() {
       setIsLoading(true);
       const data = await fetchClientProjectsWithTasks(user!.id);
       setProjects(data);
       setIsLoading(false);
     }
-
     loadProjects();
   }, [user]);
 
-  // Realtime — listen for project assignment changes
   useEffect(() => {
     if (!user) return;
-
     const channel = supabase
       .channel(`client-projects:${user.id}`)
       .on(
@@ -158,18 +146,13 @@ export default function ClientDashboardPage() {
       )
       .on(
         "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "project_clients",
-        },
+        { event: "DELETE", schema: "public", table: "project_clients" },
         async () => {
           const data = await fetchClientProjectsWithTasks(user.id);
           setProjects(data);
         },
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -192,28 +175,20 @@ export default function ClientDashboardPage() {
       toast.error("La contraseña debe tener al menos 6 caracteres");
       return;
     }
-
     setIsChangingPassword(true);
     const { error } = await supabase.auth.updateUser({
       password: passwordForm.newPassword,
     });
-
     if (error) {
       toast.error("Error al cambiar la contraseña");
       setIsChangingPassword(false);
       return;
     }
-
     await supabase
       .from("profiles")
       .update({ password_changed: true })
       .eq("id", user!.id);
-
-    useAuthStore.getState().setProfile({
-      ...profile!,
-      password_changed: true,
-    });
-
+    useAuthStore.getState().setProfile({ ...profile!, password_changed: true });
     toast.success("Contraseña actualizada exitosamente");
     setIsPasswordOpen(false);
     setPasswordForm({ newPassword: "", confirmPassword: "" });
@@ -240,7 +215,6 @@ export default function ClientDashboardPage() {
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button
@@ -276,7 +250,6 @@ export default function ClientDashboardPage() {
           </p>
         </motion.div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
@@ -315,7 +288,6 @@ export default function ClientDashboardPage() {
 
         <Separator />
 
-        {/* Projects list */}
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
@@ -339,7 +311,6 @@ export default function ClientDashboardPage() {
                 (t) => t.status === "done",
               ).length;
               const totalTasks = project.tasks.length;
-
               return (
                 <motion.div
                   key={project.id}
@@ -350,7 +321,6 @@ export default function ClientDashboardPage() {
                   <Link to={`/cliente/proyecto/${project.id}`}>
                     <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                       <CardContent className="p-4 space-y-3">
-                        {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-foreground truncate">
@@ -369,8 +339,6 @@ export default function ClientDashboardPage() {
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
-
-                        {/* Progress */}
                         <div className="space-y-1">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">
@@ -387,8 +355,6 @@ export default function ClientDashboardPage() {
                             className="h-1.5"
                           />
                         </div>
-
-                        {/* Meta */}
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           {totalTasks > 0 && (
                             <div className="flex items-center gap-1">
@@ -434,7 +400,6 @@ export default function ClientDashboardPage() {
         )}
       </div>
 
-      {/* Change password dialog */}
       <Dialog
         open={isPasswordOpen}
         onOpenChange={(open) => {
