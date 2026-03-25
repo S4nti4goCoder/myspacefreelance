@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,12 +18,14 @@ import {
   ChevronDown,
   Archive,
   ArchiveRestore,
+  Copy,
 } from "lucide-react";
 import {
   useProjects,
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
+  useDuplicateProject,
 } from "@/hooks/useProjects";
 import ProjectForm from "@/components/shared/ProjectForm";
 import type { ProjectFormData } from "@/components/shared/ProjectForm";
@@ -48,7 +50,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDateShort, formatCOP } from "@/lib/utils";
-import type { Project } from "@/types";
+import { supabase } from "@/lib/supabase";
+import type { Project, Task } from "@/types";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -101,6 +104,7 @@ export default function ProjectsPage() {
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const duplicateProject = useDuplicateProject();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -113,6 +117,74 @@ export default function ProjectsPage() {
   const [archivingProject, setArchivingProject] = useState<Project | null>(
     null,
   );
+
+  // Duplicate state
+  const [duplicatingProject, setDuplicatingProject] = useState<Project | null>(
+    null,
+  );
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicateTasks, setDuplicateTasks] = useState<Task[]>([]);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+
+  // Load tasks when duplicate dialog opens
+  useEffect(() => {
+    if (!duplicatingProject) return;
+    setDuplicateName(`Copia de ${duplicatingProject.name}`);
+    setIsLoadingTasks(true);
+
+    supabase
+      .from("tasks")
+      .select("*")
+      .eq("project_id", duplicatingProject.id)
+      .order("order_index", { ascending: true })
+      .then(({ data }) => {
+        const tasks = (data ?? []) as Task[];
+        setDuplicateTasks(tasks);
+        setSelectedTaskIds(new Set(tasks.map((t) => t.id)));
+        setIsLoadingTasks(false);
+      });
+  }, [duplicatingProject]);
+
+  const allSelected =
+    duplicateTasks.length > 0 && selectedTaskIds.size === duplicateTasks.length;
+
+  const toggleAllTasks = () => {
+    if (allSelected) {
+      setSelectedTaskIds(new Set());
+    } else {
+      setSelectedTaskIds(new Set(duplicateTasks.map((t) => t.id)));
+    }
+  };
+
+  const toggleTask = (id: string) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDuplicateConfirm = () => {
+    if (!duplicatingProject || !duplicateName.trim()) return;
+    duplicateProject.mutate(
+      {
+        project: duplicatingProject,
+        newName: duplicateName.trim(),
+        taskIds: Array.from(selectedTaskIds),
+      },
+      {
+        onSuccess: () => {
+          setDuplicatingProject(null);
+          setDuplicateTasks([]);
+          setSelectedTaskIds(new Set());
+        },
+      },
+    );
+  };
 
   const clientOptions = useMemo(() => {
     if (!projects) return [];
@@ -144,7 +216,6 @@ export default function ProjectsPage() {
   const filtered = useMemo(() => {
     let result = projects ?? [];
 
-    // Separar archivados del resto
     result = showArchived
       ? result.filter((p) => p.status === "archived")
       : result.filter((p) => p.status !== "archived");
@@ -210,9 +281,7 @@ export default function ProjectsPage() {
   );
 
   const handleCreate = (data: ProjectFormData) => {
-    createProject.mutate(data, {
-      onSuccess: () => setIsCreateOpen(false),
-    });
+    createProject.mutate(data, { onSuccess: () => setIsCreateOpen(false) });
   };
 
   const handleUpdate = (data: ProjectFormData) => {
@@ -260,8 +329,7 @@ export default function ProjectsPage() {
               ? archivedCount
               : (projects?.filter((p) => p.status !== "archived").length ??
                 0)}{" "}
-            proyecto
-            {filtered.length !== 1 ? "s" : ""}
+            proyecto{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -302,7 +370,7 @@ export default function ProjectsPage() {
         </div>
       </motion.div>
 
-      {/* Filters — solo en vista activos */}
+      {/* Filters */}
       {!showArchived && (
         <div className="space-y-3">
           <div className="relative">
@@ -570,7 +638,7 @@ export default function ProjectsPage() {
                     </div>
                   )}
                   {project.budget && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs">
                       <span className="font-medium text-foreground">
                         {formatCOP(project.budget)}
                       </span>
@@ -627,9 +695,19 @@ export default function ProjectsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
+                          title="Editar"
                           onClick={() => setEditingProject(project)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          title="Duplicar"
+                          onClick={() => setDuplicatingProject(project)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -694,6 +772,123 @@ export default function ProjectsPage() {
               isLoading={updateProject.isPending}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate dialog */}
+      <Dialog
+        open={!!duplicatingProject}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDuplicatingProject(null);
+            setDuplicateTasks([]);
+            setSelectedTaskIds(new Set());
+          }
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5" />
+              Duplicar proyecto
+            </DialogTitle>
+            <DialogDescription>
+              Se creará un nuevo proyecto en estado Pendiente con progreso 0%.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Nombre */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Nombre del nuevo proyecto
+              </label>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="Nombre del proyecto..."
+              />
+            </div>
+
+            {/* Tareas */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">
+                  Tareas a copiar
+                  {duplicateTasks.length > 0 && (
+                    <span className="ml-1.5 text-muted-foreground font-normal">
+                      ({selectedTaskIds.size}/{duplicateTasks.length})
+                    </span>
+                  )}
+                </label>
+                {duplicateTasks.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={toggleAllTasks}
+                  >
+                    {allSelected ? "Deseleccionar todas" : "Seleccionar todas"}
+                  </Button>
+                )}
+              </div>
+
+              {isLoadingTasks ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-9 bg-muted animate-pulse rounded-lg"
+                    />
+                  ))}
+                </div>
+              ) : duplicateTasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  Este proyecto no tiene tareas.
+                </p>
+              ) : (
+                <div className="border border-border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                  {duplicateTasks.map((task, i) => (
+                    <label
+                      key={task.id}
+                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors ${i > 0 ? "border-t border-border" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.has(task.id)}
+                        onChange={() => toggleTask(task.id)}
+                        className="h-4 w-4 rounded accent-primary"
+                      />
+                      <span className="text-sm text-foreground truncate">
+                        {task.title}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDuplicatingProject(null);
+                setDuplicateTasks([]);
+                setSelectedTaskIds(new Set());
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDuplicateConfirm}
+              disabled={!duplicateName.trim() || duplicateProject.isPending}
+            >
+              {duplicateProject.isPending
+                ? "Duplicando..."
+                : "Duplicar proyecto"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

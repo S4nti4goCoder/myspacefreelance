@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type { Project, Profile } from "@/types";
+import type { Project, Profile, Task } from "@/types";
 
 interface CreateProjectInput {
   name: string;
@@ -25,6 +25,12 @@ interface UpdateProjectInput {
   budget?: number | null;
   tags?: string[];
   progress?: number;
+}
+
+interface DuplicateProjectInput {
+  project: Project & { client?: Profile | null };
+  newName: string;
+  taskIds: string[];
 }
 
 async function fetchProjects() {
@@ -106,7 +112,6 @@ async function updateProject(input: UpdateProjectInput) {
 
   if (clientId !== undefined) {
     await supabase.from("project_clients").delete().eq("project_id", id);
-
     if (clientId) {
       await supabase
         .from("project_clients")
@@ -115,6 +120,67 @@ async function updateProject(input: UpdateProjectInput) {
   }
 
   return data as Project;
+}
+
+async function duplicateProject({
+  project,
+  newName,
+  taskIds,
+}: DuplicateProjectInput) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // Crear el nuevo proyecto
+  const { data: newProject, error: projectError } = await supabase
+    .from("projects")
+    .insert({
+      user_id: session!.user.id,
+      name: newName,
+      description: project.description,
+      start_date: project.start_date,
+      due_date: project.due_date,
+      status: "todo",
+      budget: project.budget,
+      tags: project.tags,
+      progress: 0,
+    })
+    .select()
+    .single();
+
+  if (projectError) throw projectError;
+
+  // Copiar cliente si tenía uno asignado
+  if (project.client?.id) {
+    await supabase.from("project_clients").insert({
+      project_id: newProject.id,
+      client_id: project.client.id,
+    });
+  }
+
+  // Copiar tareas seleccionadas
+  if (taskIds.length > 0) {
+    const { data: originalTasks } = await supabase
+      .from("tasks")
+      .select("*")
+      .in("id", taskIds)
+      .order("order_index", { ascending: true });
+
+    if (originalTasks && originalTasks.length > 0) {
+      const newTasks = originalTasks.map((t: Task) => ({
+        project_id: newProject.id,
+        title: t.title,
+        description: t.description,
+        due_date: t.due_date,
+        status: "todo" as const,
+        order_index: t.order_index,
+      }));
+
+      await supabase.from("tasks").insert(newTasks);
+    }
+  }
+
+  return newProject as Project;
 }
 
 async function deleteProject(id: string) {
@@ -151,7 +217,6 @@ export function useProject(id: string) {
 
 export function useCreateProject() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: createProject,
     onSuccess: () => {
@@ -160,15 +225,12 @@ export function useCreateProject() {
       queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       toast.success("Proyecto creado exitosamente");
     },
-    onError: () => {
-      toast.error("Error al crear el proyecto");
-    },
+    onError: () => toast.error("Error al crear el proyecto"),
   });
 }
 
 export function useUpdateProject() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: updateProject,
     onSuccess: (data) => {
@@ -179,15 +241,25 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["project-client-accounts"] });
       toast.success("Proyecto actualizado exitosamente");
     },
-    onError: () => {
-      toast.error("Error al actualizar el proyecto");
+    onError: () => toast.error("Error al actualizar el proyecto"),
+  });
+}
+
+export function useDuplicateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: duplicateProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Proyecto duplicado exitosamente");
     },
+    onError: () => toast.error("Error al duplicar el proyecto"),
   });
 }
 
 export function useDeleteProject() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deleteProject,
     onSuccess: () => {
@@ -195,8 +267,6 @@ export function useDeleteProject() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Proyecto eliminado exitosamente");
     },
-    onError: () => {
-      toast.error("Error al eliminar el proyecto");
-    },
+    onError: () => toast.error("Error al eliminar el proyecto"),
   });
 }
