@@ -54,25 +54,6 @@ async function updateTasksOrder(
   await Promise.all(updates);
 }
 
-async function notifyTaskReview(task: Task) {
-  // Get project owner and project name
-  const { data: project } = await supabase
-    .from("projects")
-    .select("user_id, name")
-    .eq("id", task.project_id)
-    .single();
-
-  if (!project) return;
-
-  await supabase.from("notifications").insert({
-    user_id: project.user_id,
-    type: "task_review",
-    title: "Tarea lista para revisión",
-    message: `"${task.title}" en el proyecto "${project.name}"`,
-    project_id: task.project_id,
-  });
-}
-
 export function useTasks(projectId: string) {
   return useQuery({
     queryKey: ["tasks", projectId],
@@ -109,11 +90,6 @@ export function useUpdateTask() {
       });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-
-      // Notify when task moved to review
-      if (data.status === "review") {
-        notifyTaskReview(data);
-      }
     },
     onError: () => toast.error("Error al actualizar la tarea"),
   });

@@ -134,25 +134,6 @@ async function deleteProject(id: string) {
   if (error) throw error;
 }
 
-async function notifyProjectDone(project: Project) {
-  const { data: projectClients } = await supabase
-    .from("project_clients")
-    .select("client_id")
-    .eq("project_id", project.id);
-
-  if (!projectClients || projectClients.length === 0) return;
-
-  const notifications = projectClients.map((pc: { client_id: string }) => ({
-    user_id: pc.client_id,
-    type: "project_done",
-    title: "¡Proyecto completado!",
-    message: `El proyecto "${project.name}" ha sido marcado como completado.`,
-    project_id: project.id,
-  }));
-
-  await supabase.from("notifications").insert(notifications);
-}
-
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
@@ -197,10 +178,6 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       queryClient.invalidateQueries({ queryKey: ["project-client-accounts"] });
       toast.success("Proyecto actualizado exitosamente");
-
-      if (data.status === "done") {
-        notifyProjectDone(data);
-      }
     },
     onError: () => {
       toast.error("Error al actualizar el proyecto");
