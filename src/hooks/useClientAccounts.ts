@@ -47,13 +47,24 @@ async function registerClient({
   phone?: string;
   notes?: string;
 }) {
+  // Verificar duplicado antes de intentar registrar
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error("Ya existe una cuenta con este correo electrónico");
+  }
+
   // Save freelancer session before signUp
   const {
     data: { session: freelancerSession },
   } = await supabase.auth.getSession();
 
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: email.trim().toLowerCase(),
     password,
     options: {
       data: { name, role: "client" },
@@ -75,7 +86,6 @@ async function registerClient({
 
   const newUserId = data.user.id;
 
-  // Update phone and notes in profile
   if (phone || notes) {
     await supabase
       .from("profiles")
@@ -83,7 +93,6 @@ async function registerClient({
       .eq("id", newUserId);
   }
 
-  // Restore freelancer session immediately
   if (freelancerSession) {
     await supabase.auth.setSession({
       access_token: freelancerSession.access_token,

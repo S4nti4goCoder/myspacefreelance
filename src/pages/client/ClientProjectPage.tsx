@@ -129,6 +129,21 @@ export default function ClientProjectPage() {
 
     async function loadData() {
       setIsLoading(true);
+
+      // Verificar acceso explícitamente antes de cargar
+      const { data: accessCheck } = await supabase
+        .from("project_clients")
+        .select("id")
+        .eq("project_id", id)
+        .eq("client_id", user!.id)
+        .single();
+
+      if (!accessCheck) {
+        toast.error("No tienes acceso a este proyecto");
+        navigate("/cliente/dashboard");
+        return;
+      }
+
       const [projectRes, tasksRes, docsRes, attachRes, commentsRes] =
         await Promise.all([
           supabase.from("projects").select("*").eq("id", id).single(),
@@ -150,8 +165,8 @@ export default function ClientProjectPage() {
             .order("created_at"),
         ]);
 
-      if (projectRes.error || !projectRes.data) {
-        toast.error("No tienes acceso a este proyecto");
+      if (!projectRes.data) {
+        toast.error("Error al cargar el proyecto");
         navigate("/cliente/dashboard");
         return;
       }
