@@ -10,6 +10,7 @@ import {
   Briefcase,
   UserCog,
   UserCircle,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -19,10 +20,12 @@ import { Separator } from "@/components/ui/separator";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { cn } from "@/lib/utils";
 
+
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, end: false },
   { to: "/cuentas-clientes", label: "Cuentas", icon: UserCog, end: false },
+  { to: "/reportes", label: "Reportes", icon: BarChart3, end: false },
 ];
 
 interface LayoutProps {
