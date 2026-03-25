@@ -28,10 +28,8 @@ export interface Project {
   status: ProjectStatus;
   budget: number | null;
   progress: number;
-  share_token: string;
   tags: string[];
   created_at: string;
-  // Joined field – populated via project_clients in useProjects
   client?: Profile | null;
 }
 

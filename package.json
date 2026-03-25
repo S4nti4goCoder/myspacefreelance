@@ -45,7 +45,6 @@
     "globals": "^17.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
-    "vite": "^8.0.1",
-    "vite-plugin-node-modules-polyfills": "^0.0.1-security"
+    "vite": "^8.0.1"
   }
 }

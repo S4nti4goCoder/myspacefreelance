@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { Project } from "@/types";
+import type { Project, Profile } from "@/types";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 
 const statusLabels: Record<string, string> = {
@@ -38,16 +38,28 @@ async function fetchDashboardData() {
   const [projectsRes, clientsRes, tasksRes] = await Promise.all([
     supabase
       .from("projects")
-      .select("*, client:profiles(id, name)")
+      .select(
+        `*,
+        project_clients!left(
+          client:profiles(id, name)
+        )`,
+      )
       .order("created_at", { ascending: false }),
     supabase.from("profiles").select("id").eq("role", "client"),
     supabase.from("tasks").select("id, status"),
   ]);
 
-  return {
-    projects: (projectsRes.data ?? []) as (Project & {
+  const projects = (projectsRes.data ?? []).map((row) => {
+    const clientRow = row.project_clients?.[0];
+    const client = (clientRow?.client as Profile) ?? null;
+    const { project_clients: _pc, ...rest } = row;
+    return { ...rest, client } as Project & {
       client: { id: string; name: string } | null;
-    })[],
+    };
+  });
+
+  return {
+    projects,
     clientCount: clientsRes.data?.length ?? 0,
     tasks: tasksRes.data ?? [],
   };
