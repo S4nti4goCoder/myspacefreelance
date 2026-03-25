@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Search,
@@ -12,6 +12,10 @@ import {
   User,
   Tag,
   ArrowRight,
+  ArrowUpDown,
+  X,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
 import {
   useProjects,
@@ -26,6 +30,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +73,23 @@ const statusColors: Record<string, string> = {
   cancelled: "text-destructive",
 };
 
+type SortOption =
+  | "created_desc"
+  | "created_asc"
+  | "due_asc"
+  | "due_desc"
+  | "name_asc"
+  | "progress_desc";
+
+const sortLabels: Record<SortOption, string> = {
+  created_desc: "Más recientes",
+  created_asc: "Más antiguos",
+  due_asc: "Entrega próxima",
+  due_desc: "Entrega lejana",
+  name_asc: "Nombre A-Z",
+  progress_desc: "Mayor progreso",
+};
+
 export default function ProjectsPage() {
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
@@ -69,17 +97,93 @@ export default function ProjectsPage() {
   const deleteProject = useDeleteProject();
 
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("created_desc");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
-  const filtered =
-    projects?.filter(
-      (p) =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description?.toLowerCase().includes(search.toLowerCase()) ||
-        p.tags?.some((t) => t.toLowerCase().includes(search.toLowerCase())),
-    ) ?? [];
+  const clientOptions = useMemo(() => {
+    if (!projects) return [];
+    const seen = new Set<string>();
+    return projects
+      .filter(
+        (p) => p.client && !seen.has(p.client.id) && seen.add(p.client.id),
+      )
+      .map((p) => ({ id: p.client!.id, name: p.client!.name }));
+  }, [projects]);
+
+  const activeFiltersCount = [
+    statusFilter !== "all",
+    clientFilter !== "all",
+    search.length > 0,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setClientFilter("all");
+    setSortBy("created_desc");
+  };
+
+  const filtered = useMemo(() => {
+    let result = projects ?? [];
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          p.tags?.some((t) => t.toLowerCase().includes(q)) ||
+          p.client?.name.toLowerCase().includes(q),
+      );
+    }
+
+    if (statusFilter !== "all") {
+      result = result.filter((p) => p.status === statusFilter);
+    }
+
+    if (clientFilter !== "all") {
+      result = result.filter((p) => p.client?.id === clientFilter);
+    }
+
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "created_asc":
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case "created_desc":
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case "due_asc": {
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return (
+            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+          );
+        }
+        case "due_desc": {
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return (
+            new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
+          );
+        }
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "progress_desc":
+          return b.progress - a.progress;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [projects, search, statusFilter, clientFilter, sortBy]);
 
   const handleCreate = (data: ProjectFormData) => {
     createProject.mutate(data, {
@@ -91,9 +195,7 @@ export default function ProjectsPage() {
     if (!editingProject) return;
     updateProject.mutate(
       { id: editingProject.id, ...data },
-      {
-        onSuccess: () => setEditingProject(null),
-      },
+      { onSuccess: () => setEditingProject(null) },
     );
   };
 
@@ -133,8 +235,8 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Proyectos</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {projects?.length ?? 0} proyecto{projects?.length !== 1 ? "s" : ""}{" "}
-            en total
+            {filtered.length} de {projects?.length ?? 0} proyecto
+            {(projects?.length ?? 0) !== 1 ? "s" : ""}
           </p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
@@ -143,15 +245,151 @@ export default function ProjectsPage() {
         </Button>
       </motion.div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nombre, descripción o etiqueta..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Filters */}
+      <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, descripción, etiqueta o cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter row */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Status filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-2">
+                <Filter className="h-3.5 w-3.5" />
+                {statusFilter === "all" ? "Estado" : statusLabels[statusFilter]}
+                {statusFilter !== "all" && (
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                Todos los estados
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
+                Pendiente
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("progress")}>
+                En progreso
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("review")}>
+                En revisión
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("done")}>
+                Completado
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
+                Cancelado
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Client filter */}
+          {clientOptions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <User className="h-3.5 w-3.5" />
+                  {clientFilter === "all"
+                    ? "Cliente"
+                    : (clientOptions.find((c) => c.id === clientFilter)?.name ??
+                      "Cliente")}
+                  {clientFilter !== "all" && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setClientFilter("all")}>
+                  Todos los clientes
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {clientOptions.map((c) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onClick={() => setClientFilter(c.id)}
+                  >
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Sort */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-2">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                {sortLabels[sortBy]}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {(Object.keys(sortLabels) as SortOption[]).map((key) => (
+                <DropdownMenuItem key={key} onClick={() => setSortBy(key)}>
+                  <span
+                    className={
+                      sortBy === key ? "font-semibold text-primary" : ""
+                    }
+                  >
+                    {sortLabels[key]}
+                  </span>
+                  {sortBy === key && (
+                    <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear filters */}
+          <AnimatePresence>
+            {activeFiltersCount > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-9 gap-2"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Limpiar
+                  <Badge
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-4"
+                  >
+                    {activeFiltersCount}
+                  </Badge>
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Loading */}
@@ -174,9 +412,16 @@ export default function ProjectsPage() {
             <FolderKanban className="h-8 w-8 text-muted-foreground" />
           </div>
           <p className="text-muted-foreground font-medium">
-            {search ? "No se encontraron proyectos" : "Aún no tienes proyectos"}
+            {activeFiltersCount > 0
+              ? "No hay proyectos con estos filtros"
+              : "Aún no tienes proyectos"}
           </p>
-          {!search && (
+          {activeFiltersCount > 0 ? (
+            <Button variant="outline" onClick={clearFilters}>
+              <X className="mr-2 h-4 w-4" />
+              Limpiar filtros
+            </Button>
+          ) : (
             <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Crear primer proyecto
@@ -192,7 +437,8 @@ export default function ProjectsPage() {
             key={project.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
+            transition={{ delay: i * 0.04 }}
+            layout
           >
             <Card className="hover:border-primary/50 transition-colors group">
               <CardContent className="p-4 space-y-3">
