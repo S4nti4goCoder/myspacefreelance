@@ -1,17 +1,36 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, User, DollarSign, Tag } from "lucide-react";
-import { useProject } from "@/hooks/useProjects";
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  DollarSign,
+  Tag,
+  Archive,
+  ArchiveRestore,
+  AlertTriangle,
+} from "lucide-react";
+import { useProject, useUpdateProject } from "@/hooks/useProjects";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import KanbanBoard from "@/components/shared/KanbanBoard";
 import DocumentsTab from "@/components/shared/DocumentsTab";
 import AttachmentsTab from "@/components/shared/AttachmentsTab";
 import PaymentsTab from "@/components/shared/PaymentsTab";
 import CommentsTab from "@/components/shared/CommentsTab";
+import { formatDate, formatCOP } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   todo: "Pendiente",
@@ -19,6 +38,7 @@ const statusLabels: Record<string, string> = {
   review: "En revisión",
   done: "Completado",
   cancelled: "Cancelado",
+  archived: "Archivado",
 };
 
 const statusVariants: {
@@ -29,29 +49,38 @@ const statusVariants: {
   review: "outline",
   done: "default",
   cancelled: "destructive",
+  archived: "secondary",
 };
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id!);
+  const updateProject = useUpdateProject();
 
-  const formatDate = (date: string | null) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("es-CO", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+
+  const isArchived = project?.status === "archived";
+
+  const handleArchiveConfirm = () => {
+    if (!project) return;
+    updateProject.mutate(
+      { id: project.id, status: "archived" },
+      {
+        onSuccess: () => {
+          setIsArchiveOpen(false);
+          navigate("/proyectos");
+        },
+      },
+    );
   };
 
-  const formatBudget = (budget: number | null) => {
-    if (!budget) return "—";
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      maximumFractionDigits: 0,
-    }).format(budget);
+  const handleUnarchive = () => {
+    if (!project) return;
+    updateProject.mutate(
+      { id: project.id, status: "todo" },
+      { onSuccess: () => setIsArchiveOpen(false) },
+    );
   };
 
   if (isLoading) {
@@ -110,7 +139,36 @@ export default function ProjectDetailPage() {
               </p>
             )}
           </div>
+
+          {/* Archive / Unarchive button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsArchiveOpen(true)}
+            className="gap-2 shrink-0"
+            disabled={updateProject.isPending}
+          >
+            {isArchived ? (
+              <>
+                <ArchiveRestore className="h-4 w-4" />
+                Desarchivar
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Archivar
+              </>
+            )}
+          </Button>
         </div>
+
+        {/* Archived banner */}
+        {isArchived && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg text-sm text-muted-foreground">
+            <Archive className="h-4 w-4 shrink-0" />
+            Este proyecto está archivado. Puedes consultarlo pero no editarlo.
+          </div>
+        )}
 
         {/* Meta info */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -129,7 +187,7 @@ export default function ProjectDetailPage() {
           {project.budget && (
             <div className="flex items-center gap-1.5">
               <DollarSign className="h-4 w-4" />
-              <span>{formatBudget(project.budget)}</span>
+              <span>{formatCOP(project.budget)}</span>
             </div>
           )}
           {project.tags && project.tags.length > 0 && (
@@ -192,6 +250,81 @@ export default function ProjectDetailPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Archive dialog */}
+      <Dialog open={isArchiveOpen} onOpenChange={setIsArchiveOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {isArchived ? (
+                <>
+                  <ArchiveRestore className="h-5 w-5 text-muted-foreground" />
+                  Desarchivar proyecto
+                </>
+              ) : (
+                <>
+                  <Archive className="h-5 w-5 text-muted-foreground" />
+                  Archivar proyecto
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {isArchived ? (
+                <>
+                  ¿Restaurar{" "}
+                  <span className="font-semibold text-foreground">
+                    "{project.name}"
+                  </span>
+                  ? Volverá a aparecer en la lista principal de proyectos.
+                </>
+              ) : (
+                <>
+                  ¿Archivar{" "}
+                  <span className="font-semibold text-foreground">
+                    "{project.name}"
+                  </span>
+                  ? Dejará de aparecer en la lista principal pero podrás
+                  consultarlo y restaurarlo desde la vista de archivados.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsArchiveOpen(false)}>
+              Cancelar
+            </Button>
+            {isArchived ? (
+              <Button
+                onClick={handleUnarchive}
+                disabled={updateProject.isPending}
+              >
+                {updateProject.isPending ? "Restaurando..." : "Desarchivar"}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleArchiveConfirm}
+                disabled={updateProject.isPending}
+              >
+                {updateProject.isPending ? "Archivando..." : "Archivar"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert for archived project trying to delete */}
+      {isArchived && (
+        <Dialog>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Proyecto archivado
+              </DialogTitle>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -3,7 +3,8 @@ export type ProjectStatus =
   | "progress"
   | "review"
   | "done"
-  | "cancelled";
+  | "cancelled"
+  | "archived";
 export type TaskStatus = "todo" | "progress" | "review" | "done";
 export type UserRole = "freelancer" | "client";
 

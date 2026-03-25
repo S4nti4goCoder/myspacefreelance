@@ -16,6 +16,8 @@ import {
   X,
   Filter,
   ChevronDown,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import {
   useProjects,
@@ -54,6 +56,7 @@ const statusLabels: Record<string, string> = {
   review: "En revisión",
   done: "Completado",
   cancelled: "Cancelado",
+  archived: "Archivado",
 };
 
 type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
@@ -64,6 +67,7 @@ const statusVariants: Record<string, BadgeVariant> = {
   review: "outline",
   done: "default",
   cancelled: "destructive",
+  archived: "secondary",
 };
 
 const statusColors: Record<string, string> = {
@@ -72,6 +76,7 @@ const statusColors: Record<string, string> = {
   review: "text-orange-500",
   done: "text-green-500",
   cancelled: "text-destructive",
+  archived: "text-muted-foreground",
 };
 
 type SortOption =
@@ -101,16 +106,24 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("created_desc");
+  const [showArchived, setShowArchived] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [archivingProject, setArchivingProject] = useState<Project | null>(
+    null,
+  );
 
   const clientOptions = useMemo(() => {
     if (!projects) return [];
     const seen = new Set<string>();
     return projects
       .filter(
-        (p) => p.client && !seen.has(p.client.id) && seen.add(p.client.id),
+        (p) =>
+          p.status !== "archived" &&
+          p.client &&
+          !seen.has(p.client.id) &&
+          seen.add(p.client.id),
       )
       .map((p) => ({ id: p.client!.id, name: p.client!.name }));
   }, [projects]);
@@ -131,6 +144,11 @@ export default function ProjectsPage() {
   const filtered = useMemo(() => {
     let result = projects ?? [];
 
+    // Separar archivados del resto
+    result = showArchived
+      ? result.filter((p) => p.status === "archived")
+      : result.filter((p) => p.status !== "archived");
+
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -142,7 +160,7 @@ export default function ProjectsPage() {
       );
     }
 
-    if (statusFilter !== "all") {
+    if (!showArchived && statusFilter !== "all") {
       result = result.filter((p) => p.status === statusFilter);
     }
 
@@ -184,7 +202,12 @@ export default function ProjectsPage() {
     });
 
     return result;
-  }, [projects, search, statusFilter, clientFilter, sortBy]);
+  }, [projects, search, statusFilter, clientFilter, sortBy, showArchived]);
+
+  const archivedCount = useMemo(
+    () => projects?.filter((p) => p.status === "archived").length ?? 0,
+    [projects],
+  );
 
   const handleCreate = (data: ProjectFormData) => {
     createProject.mutate(data, {
@@ -198,6 +221,18 @@ export default function ProjectsPage() {
       { id: editingProject.id, ...data },
       { onSuccess: () => setEditingProject(null) },
     );
+  };
+
+  const handleArchiveConfirm = () => {
+    if (!archivingProject) return;
+    updateProject.mutate(
+      { id: archivingProject.id, status: "archived" },
+      { onSettled: () => setArchivingProject(null) },
+    );
+  };
+
+  const handleUnarchive = (project: Project) => {
+    updateProject.mutate({ id: project.id, status: "todo" });
   };
 
   const handleDeleteConfirm = () => {
@@ -216,24 +251,208 @@ export default function ProjectsPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Proyectos</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {showArchived ? "Proyectos archivados" : "Proyectos"}
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {filtered.length} de {projects?.length ?? 0} proyecto
-            {(projects?.length ?? 0) !== 1 ? "s" : ""}
+            {filtered.length} de{" "}
+            {showArchived
+              ? archivedCount
+              : (projects?.filter((p) => p.status !== "archived").length ??
+                0)}{" "}
+            proyecto
+            {filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo proyecto
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowArchived(!showArchived);
+              clearFilters();
+            }}
+            className="gap-2"
+          >
+            {showArchived ? (
+              <>
+                <ArrowRight className="h-4 w-4" />
+                Ver activos
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Archivados
+                {archivedCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-4"
+                  >
+                    {archivedCount}
+                  </Badge>
+                )}
+              </>
+            )}
+          </Button>
+          {!showArchived && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo proyecto
+            </Button>
+          )}
+        </div>
       </motion.div>
 
-      {/* Filters */}
-      <div className="space-y-3">
+      {/* Filters — solo en vista activos */}
+      {!showArchived && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre, descripción, etiqueta o cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <Filter className="h-3.5 w-3.5" />
+                  {statusFilter === "all"
+                    ? "Estado"
+                    : statusLabels[statusFilter]}
+                  {statusFilter !== "all" && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                  Todos los estados
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
+                  Pendiente
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("progress")}>
+                  En progreso
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("review")}>
+                  En revisión
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("done")}>
+                  Completado
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
+                  Cancelado
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {clientOptions.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2">
+                    <User className="h-3.5 w-3.5" />
+                    {clientFilter === "all"
+                      ? "Cliente"
+                      : (clientOptions.find((c) => c.id === clientFilter)
+                          ?.name ?? "Cliente")}
+                    {clientFilter !== "all" && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    )}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setClientFilter("all")}>
+                    Todos los clientes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {clientOptions.map((c) => (
+                    <DropdownMenuItem
+                      key={c.id}
+                      onClick={() => setClientFilter(c.id)}
+                    >
+                      {c.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  {sortLabels[sortBy]}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {(Object.keys(sortLabels) as SortOption[]).map((key) => (
+                  <DropdownMenuItem key={key} onClick={() => setSortBy(key)}>
+                    <span
+                      className={
+                        sortBy === key ? "font-semibold text-primary" : ""
+                      }
+                    >
+                      {sortLabels[key]}
+                    </span>
+                    {sortBy === key && (
+                      <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AnimatePresence>
+              {activeFiltersCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-9 gap-2"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Limpiar
+                    <Badge
+                      variant="secondary"
+                      className="text-xs px-1.5 py-0 h-4"
+                    >
+                      {activeFiltersCount}
+                    </Badge>
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* Search en vista archivados */}
+      {showArchived && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, descripción, etiqueta o cliente..."
+            placeholder="Buscar proyectos archivados..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 pr-9"
@@ -247,127 +466,7 @@ export default function ProjectsPage() {
             </button>
           )}
         </div>
-
-        <div className="flex flex-wrap gap-2 items-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-2">
-                <Filter className="h-3.5 w-3.5" />
-                {statusFilter === "all" ? "Estado" : statusLabels[statusFilter]}
-                {statusFilter !== "all" && (
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                )}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-                Todos los estados
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
-                Pendiente
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("progress")}>
-                En progreso
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("review")}>
-                En revisión
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("done")}>
-                Completado
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
-                Cancelado
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {clientOptions.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
-                  <User className="h-3.5 w-3.5" />
-                  {clientFilter === "all"
-                    ? "Cliente"
-                    : (clientOptions.find((c) => c.id === clientFilter)?.name ??
-                      "Cliente")}
-                  {clientFilter !== "all" && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  )}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setClientFilter("all")}>
-                  Todos los clientes
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {clientOptions.map((c) => (
-                  <DropdownMenuItem
-                    key={c.id}
-                    onClick={() => setClientFilter(c.id)}
-                  >
-                    {c.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-2">
-                <ArrowUpDown className="h-3.5 w-3.5" />
-                {sortLabels[sortBy]}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {(Object.keys(sortLabels) as SortOption[]).map((key) => (
-                <DropdownMenuItem key={key} onClick={() => setSortBy(key)}>
-                  <span
-                    className={
-                      sortBy === key ? "font-semibold text-primary" : ""
-                    }
-                  >
-                    {sortLabels[key]}
-                  </span>
-                  {sortBy === key && (
-                    <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <AnimatePresence>
-            {activeFiltersCount > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="h-9 gap-2"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Limpiar
-                  <Badge
-                    variant="secondary"
-                    className="text-xs px-1.5 py-0 h-4"
-                  >
-                    {activeFiltersCount}
-                  </Badge>
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+      )}
 
       {/* Loading */}
       {isLoading && (
@@ -386,19 +485,26 @@ export default function ProjectsPage() {
           className="flex flex-col items-center justify-center py-16 gap-3"
         >
           <div className="bg-muted rounded-full p-4">
-            <FolderKanban className="h-8 w-8 text-muted-foreground" />
+            {showArchived ? (
+              <Archive className="h-8 w-8 text-muted-foreground" />
+            ) : (
+              <FolderKanban className="h-8 w-8 text-muted-foreground" />
+            )}
           </div>
           <p className="text-muted-foreground font-medium">
-            {activeFiltersCount > 0
-              ? "No hay proyectos con estos filtros"
-              : "Aún no tienes proyectos"}
+            {showArchived
+              ? "No hay proyectos archivados"
+              : activeFiltersCount > 0
+                ? "No hay proyectos con estos filtros"
+                : "Aún no tienes proyectos"}
           </p>
-          {activeFiltersCount > 0 ? (
+          {!showArchived && activeFiltersCount > 0 && (
             <Button variant="outline" onClick={clearFilters}>
               <X className="mr-2 h-4 w-4" />
               Limpiar filtros
             </Button>
-          ) : (
+          )}
+          {!showArchived && activeFiltersCount === 0 && (
             <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Crear primer proyecto
@@ -417,7 +523,9 @@ export default function ProjectsPage() {
             transition={{ delay: i * 0.04 }}
             layout
           >
-            <Card className="hover:border-primary/50 transition-colors group">
+            <Card
+              className={`transition-colors group ${showArchived ? "opacity-75 hover:opacity-100" : "hover:border-primary/50"}`}
+            >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -491,22 +599,49 @@ export default function ProjectsPage() {
 
                 <div className="flex items-center justify-between pt-1 border-t border-border">
                   <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setEditingProject(project)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeletingProject(project)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {showArchived ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Desarchivar"
+                          onClick={() => handleUnarchive(project)}
+                          disabled={updateProject.isPending}
+                        >
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Eliminar permanentemente"
+                          onClick={() => setDeletingProject(project)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setEditingProject(project)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          title="Archivar"
+                          onClick={() => setArchivingProject(project)}
+                        >
+                          <Archive className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                   <Link to={`/proyectos/${project.id}`}>
                     <Button
@@ -562,6 +697,40 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Archive confirmation */}
+      <Dialog
+        open={!!archivingProject}
+        onOpenChange={(open) => !open && setArchivingProject(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-muted-foreground" />
+              Archivar proyecto
+            </DialogTitle>
+            <DialogDescription>
+              ¿Archivar{" "}
+              <span className="font-semibold text-foreground">
+                "{archivingProject?.name}"
+              </span>
+              ? El proyecto dejará de aparecer en la lista principal pero podrás
+              consultarlo y restaurarlo desde la vista de archivados.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchivingProject(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleArchiveConfirm}
+              disabled={updateProject.isPending}
+            >
+              {updateProject.isPending ? "Archivando..." : "Archivar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <Dialog
         open={!!deletingProject}
@@ -574,12 +743,11 @@ export default function ProjectsPage() {
               Eliminar proyecto
             </DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de que deseas eliminar{" "}
+              ¿Estás seguro de que deseas eliminar permanentemente{" "}
               <span className="font-semibold text-foreground">
                 "{deletingProject?.name}"
               </span>
-              ? Esta acción eliminará todas las tareas, documentos, archivos y
-              pagos asociados.
+              ? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
