@@ -10,6 +10,7 @@ import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import ClientAccountsPage from "@/pages/ClientAccountsPage";
 import ClientDashboardPage from "@/pages/client/ClientDashboardPage";
 import ClientProjectPage from "@/pages/client/ClientProjectPage";
+import ProfilePage from "@/pages/ProfilePage";
 
 function ProtectedFreelancerRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuthStore();
@@ -128,6 +129,7 @@ export default function App() {
                   path="/cuentas-clientes"
                   element={<ClientAccountsPage />}
                 />
+                <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

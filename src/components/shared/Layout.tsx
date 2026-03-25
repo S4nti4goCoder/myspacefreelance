@@ -9,6 +9,7 @@ import {
   X,
   Briefcase,
   UserCog,
+  UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -103,6 +104,8 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
+  const { profile } = useAuthStore();
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-5">
@@ -148,6 +151,23 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
       <Separator />
 
       <div className="px-3 py-4 space-y-1">
+        {/* Profile link */}
+        <NavLink
+          to="/perfil"
+          onClick={onClose}
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full",
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            )
+          }
+        >
+          <UserCircle className="h-4 w-4 shrink-0" />
+          <span className="truncate">{profile?.name ?? "Mi perfil"}</span>
+        </NavLink>
+
         <ThemeToggle showLabel />
 
         <Button
