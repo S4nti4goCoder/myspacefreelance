@@ -22,17 +22,13 @@ async function fetchQuote(id: string) {
   return data as Quote;
 }
 
-async function generateQuoteNumber(): Promise<string> {
-  const { count } = await supabase
-    .from("quotes")
-    .select("*", { count: "exact", head: true });
-  const next = (count ?? 0) + 1;
-  return `COT-${String(next).padStart(3, "0")}`;
-}
-
 async function createQuote(
-  quote: Omit<Quote, "id" | "created_at" | "updated_at" | "items"> & {
+  quote: Omit<
+    Quote,
+    "id" | "created_at" | "updated_at" | "items" | "quote_number"
+  > & {
     items: Omit<QuoteItem, "id" | "quote_id">[];
+    quote_number?: string;
   },
 ) {
   const {
@@ -42,7 +38,11 @@ async function createQuote(
 
   const { data: newQuote, error } = await supabase
     .from("quotes")
-    .insert({ ...quoteData, user_id: session!.user.id })
+    .insert({
+      ...quoteData,
+      user_id: session!.user.id,
+      quote_number: quoteData.quote_number ?? "",
+    })
     .select()
     .single();
 
@@ -54,7 +54,15 @@ async function createQuote(
       .insert(items.map((item) => ({ ...item, quote_id: newQuote.id })));
   }
 
-  return newQuote as Quote;
+  // Re-fetch para obtener el quote_number generado por el trigger SQL
+  const { data: freshQuote, error: fetchError } = await supabase
+    .from("quotes")
+    .select("*, items:quote_items(*)")
+    .eq("id", newQuote.id)
+    .single();
+
+  if (fetchError) throw fetchError;
+  return freshQuote as Quote;
 }
 
 async function updateQuote({
@@ -105,8 +113,6 @@ export function useQuote(id: string) {
     enabled: !!id,
   });
 }
-
-export { generateQuoteNumber };
 
 export function useCreateQuote() {
   const queryClient = useQueryClient();

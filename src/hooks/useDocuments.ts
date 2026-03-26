@@ -42,10 +42,16 @@ async function updateDocument({
   return data as Document;
 }
 
-async function deleteDocument(id: string) {
+async function deleteDocument({
+  id,
+  projectId,
+}: {
+  id: string;
+  projectId: string;
+}) {
   const { error } = await supabase.from("documents").delete().eq("id", id);
-
   if (error) throw error;
+  return { projectId };
 }
 
 export function useDocuments(projectId: string) {
@@ -91,8 +97,10 @@ export function useDeleteDocument() {
 
   return useMutation({
     mutationFn: deleteDocument,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["documents"] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["documents", data.projectId],
+      });
       toast.success("Documento eliminado");
     },
     onError: () => toast.error("Error al eliminar el documento"),

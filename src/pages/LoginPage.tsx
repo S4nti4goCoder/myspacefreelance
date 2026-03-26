@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, LogIn, Briefcase } from "lucide-react";
@@ -18,7 +18,6 @@ import {
 
 export default function LoginPage() {
   const { user, profile } = useAuthStore();
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +28,7 @@ export default function LoginPage() {
     return <Navigate to="/" replace />;
   }
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -39,7 +38,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     setIsLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -50,26 +49,9 @@ const handleSubmit = async (e: React.FormEvent) => {
       return;
     }
 
-    if (data.user) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
-
-      useAuthStore.getState().setUser(data.user);
-      useAuthStore.getState().setProfile(profileData);
-      useAuthStore.getState().setIsLoading(false);
-
-      toast.success("¡Bienvenido de vuelta!");
-
-      if (profileData?.role === "client") {
-        navigate("/cliente/dashboard");
-      } else {
-        navigate("/");
-      }
-    }
-
+    // El perfil y la navegación los maneja onAuthStateChange en App.tsx.
+    // Cuando el perfil cargue, ProtectedRoute redirige automáticamente.
+    toast.success("¡Bienvenido de vuelta!");
     setIsLoading(false);
   };
 

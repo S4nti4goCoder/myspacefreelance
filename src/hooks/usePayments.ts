@@ -40,10 +40,16 @@ async function updatePayment({
   return data as Payment;
 }
 
-async function deletePayment(id: string) {
+async function deletePayment({
+  id,
+  projectId,
+}: {
+  id: string;
+  projectId: string;
+}) {
   const { error } = await supabase.from("payments").delete().eq("id", id);
-
   if (error) throw error;
+  return { projectId };
 }
 
 export function usePayments(projectId: string) {
@@ -89,8 +95,10 @@ export function useDeletePayment() {
 
   return useMutation({
     mutationFn: deletePayment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["payments", data.projectId],
+      });
       toast.success("Pago eliminado");
     },
     onError: () => toast.error("Error al eliminar el pago"),

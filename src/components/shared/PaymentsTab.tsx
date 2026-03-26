@@ -161,9 +161,12 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
 
   const handleDeleteConfirm = () => {
     if (!deletingPayment) return;
-    deletePayment.mutate(deletingPayment.id, {
-      onSettled: () => setDeletingPayment(null),
-    });
+    deletePayment.mutate(
+      { id: deletingPayment.id, projectId },
+      {
+        onSettled: () => setDeletingPayment(null),
+      },
+    );
   };
 
   if (isLoading) {

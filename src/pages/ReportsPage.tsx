@@ -15,18 +15,33 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatCOP, formatCOPShort } from "@/lib/utils";
-import type { Project, Payment } from "@/types";
+import type { Payment } from "@/types";
 
-interface ProjectWithPayments extends Omit<Project, "client"> {
+interface ProjectClient {
+  id: string;
+  name: string;
+}
+
+interface ProjectWithPayments {
+  id: string;
+  name: string;
+  status: string;
+  budget: number | null;
+  progress: number;
+  client?: ProjectClient | null;
   payments: Payment[];
-  client?: { id: string; name: string } | null;
 }
 
 async function fetchReportsData() {
   const [projectsRes, paymentsRes] = await Promise.all([
     supabase
       .from("projects")
-      .select("*, client:profiles(id, name)")
+      .select(
+        `*,
+        project_clients!left(
+          client:profiles(id, name)
+        )`,
+      )
       .order("created_at", { ascending: false }),
     supabase
       .from("payments")
@@ -34,13 +49,20 @@ async function fetchReportsData() {
       .order("payment_date", { ascending: true }),
   ]);
 
-  const projects = (projectsRes.data ?? []) as ProjectWithPayments[];
+  const rawProjects = projectsRes.data ?? [];
   const payments = (paymentsRes.data ?? []) as Payment[];
 
-  const projectsWithPayments = projects.map((p) => ({
-    ...p,
-    payments: payments.filter((pay) => pay.project_id === p.id),
-  }));
+  const projects: ProjectWithPayments[] = rawProjects.map((row) => {
+    const clientRow = (
+      row.project_clients as { client: ProjectClient | null }[] | null
+    )?.[0];
+    const { project_clients: _pc, ...rest } = row;
+    return {
+      ...rest,
+      client: clientRow?.client ?? null,
+      payments: payments.filter((pay) => pay.project_id === rest.id),
+    };
+  });
 
   const paymentsByMonth: Record<string, number> = {};
   payments.forEach((payment) => {
@@ -67,7 +89,7 @@ async function fetchReportsData() {
   const totalBudget = projects.reduce((sum, p) => sum + (p.budget ?? 0), 0);
 
   return {
-    projects: projectsWithPayments,
+    projects,
     monthlyData,
     totalCollected,
     totalBudget,

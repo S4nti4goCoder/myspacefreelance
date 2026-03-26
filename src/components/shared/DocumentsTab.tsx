@@ -104,12 +104,15 @@ export default function DocumentsTab({ projectId }: DocumentsTabProps) {
 
   const handleDeleteConfirm = () => {
     if (!deletingDoc) return;
-    deleteDocument.mutate(deletingDoc.id, {
-      onSuccess: () => {
-        if (selectedDoc?.id === deletingDoc.id) setSelectedDoc(null);
-        setDeletingDoc(null);
+    deleteDocument.mutate(
+      { id: deletingDoc.id, projectId },
+      {
+        onSuccess: () => {
+          if (selectedDoc?.id === deletingDoc.id) setSelectedDoc(null);
+          setDeletingDoc(null);
+        },
       },
-    });
+    );
   };
 
   if (isLoading) {

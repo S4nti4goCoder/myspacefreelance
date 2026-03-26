@@ -29,12 +29,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
-import {
-  useCreateQuote,
-  useUpdateQuote,
-  useQuote,
-  generateQuoteNumber,
-} from "@/hooks/useQuotes";
+import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import { formatCOP } from "@/lib/utils";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -67,6 +62,8 @@ export default function QuoteEditorPage() {
   const previewRef = useRef<HTMLDivElement>(null);
   const isEditing = !!id;
 
+  // En modo creación, el número lo genera el trigger SQL.
+  // Mostramos un placeholder hasta que el backend lo asigne.
   const [quoteNumber, setQuoteNumber] = useState("");
   const [status, setStatus] = useState<QuoteStatus>("draft");
   const [validDays, setValidDays] = useState(30);
@@ -129,6 +126,9 @@ export default function QuoteEditorPage() {
       }
       return;
     }
+
+    // Modo creación: solo cargar configuración fiscal del perfil.
+    // El quote_number lo asigna el trigger SQL al guardar.
     if (profile) {
       setApplyIva(profile.apply_iva ?? false);
       setApplyRetefuente(profile.apply_retefuente ?? false);
@@ -137,7 +137,6 @@ export default function QuoteEditorPage() {
       setRetefuenteRate(profile.retefuente_rate ?? 10);
       setReteicaRate(profile.reteica_rate ?? 0.414);
     }
-    generateQuoteNumber().then(setQuoteNumber);
   }, [profile, existingQuote, isEditing]);
 
   const subtotal = useMemo(
@@ -223,7 +222,6 @@ export default function QuoteEditorPage() {
     }
 
     const baseData = {
-      quote_number: quoteNumber,
       status,
       valid_days: validDays,
       project_id: projectId || null,
@@ -246,14 +244,31 @@ export default function QuoteEditorPage() {
     };
 
     if (isEditing && existingQuote) {
+      // En edición sí enviamos el quote_number existente
       updateQuote.mutate(
-        { id: existingQuote.id, ...baseData, items: getItemsInput() },
+        {
+          id: existingQuote.id,
+          quote_number: quoteNumber,
+          ...baseData,
+          items: getItemsInput(),
+        },
         { onSuccess: () => navigate("/cotizaciones") },
       );
     } else {
+      // En creación NO enviamos quote_number: el trigger SQL lo genera
       createQuote.mutate(
-        { ...baseData, user_id: profile!.id, items: getItemsInput() },
-        { onSuccess: () => navigate("/cotizaciones") },
+        {
+          ...baseData,
+          user_id: profile!.id,
+          items: getItemsInput(),
+        },
+        {
+          onSuccess: (data) => {
+            // Actualizamos el número visible con el que generó el trigger
+            setQuoteNumber(data.quote_number);
+            navigate("/cotizaciones");
+          },
+        },
       );
     }
   };
@@ -451,7 +466,6 @@ export default function QuoteEditorPage() {
       }
 
       // Footer
-      // Footer
       const footerY = 277;
       pdf.setDrawColor(...blue);
       pdf.setLineWidth(0.5);
@@ -539,8 +553,11 @@ export default function QuoteEditorPage() {
               <div className="space-y-2">
                 <Label>Número</Label>
                 <Input
-                  value={quoteNumber}
+                  value={quoteNumber || (isEditing ? "" : "Auto-generado")}
                   onChange={(e) => setQuoteNumber(e.target.value)}
+                  placeholder="Auto-generado al guardar"
+                  disabled={!isEditing}
+                  className={!isEditing ? "text-muted-foreground" : ""}
                 />
               </div>
               <div className="space-y-2">
@@ -1116,7 +1133,7 @@ export default function QuoteEditorPage() {
                           margin: "0 0 4px 0",
                         }}
                       >
-                        {quoteNumber || "COT-001"}
+                        {quoteNumber || "COT-###"}
                       </p>
                       <p style={{ fontSize: "11px", color: "#666", margin: 0 }}>
                         Válida por {validDays} días
