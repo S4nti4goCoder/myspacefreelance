@@ -7,6 +7,13 @@ export type ProjectStatus =
   | "archived";
 export type TaskStatus = "todo" | "progress" | "review" | "done";
 export type UserRole = "freelancer" | "client";
+export type QuoteStatus =
+  | "draft"
+  | "sent"
+  | "accepted"
+  | "rejected"
+  | "archived";
+export type DiscountType = "percentage" | "fixed";
 
 export interface Profile {
   id: string;
@@ -17,6 +24,19 @@ export interface Profile {
   notes: string | null;
   password_changed: boolean;
   created_at: string;
+  // Datos profesionales
+  nit: string | null;
+  address: string | null;
+  city: string | null;
+  website: string | null;
+  logo_url: string | null;
+  // Configuración fiscal
+  apply_iva: boolean;
+  apply_retefuente: boolean;
+  apply_reteica: boolean;
+  iva_rate: number;
+  retefuente_rate: number;
+  reteica_rate: number;
 }
 
 export interface Project {
@@ -91,4 +111,51 @@ export interface ProjectClient {
   created_at: string;
   profile?: Profile;
   project?: Project;
+}
+
+export interface QuoteItem {
+  id: string;
+  quote_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  order_index: number;
+}
+
+export interface Quote {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  quote_number: string;
+  status: QuoteStatus;
+  valid_days: number;
+  client_name: string;
+  client_email: string | null;
+  client_phone: string | null;
+  client_is_company: boolean;
+  client_company: string | null;
+  client_nit: string | null;
+  apply_iva: boolean;
+  apply_retefuente: boolean;
+  apply_reteica: boolean;
+  iva_rate: number;
+  retefuente_rate: number;
+  reteica_rate: number;
+  discount_type: DiscountType;
+  discount_value: number;
+  terms: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: Omit<QuoteItem, "quote_id">[];
+}
+
+export interface Service {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: string | null;
+  created_at: string;
 }

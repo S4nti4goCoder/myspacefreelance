@@ -11,6 +11,7 @@ import {
   UserCog,
   UserCircle,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -19,13 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { cn } from "@/lib/utils";
-
+import { FileText } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/proyectos", label: "Proyectos", icon: FolderKanban, end: false },
   { to: "/cuentas-clientes", label: "Cuentas", icon: UserCog, end: false },
   { to: "/reportes", label: "Reportes", icon: BarChart3, end: false },
+  { to: "/servicios", label: "Mis servicios", icon: BookOpen, end: false },
+  { to: "/cotizaciones", label: "Cotizaciones", icon: FileText, end: false },
 ];
 
 interface LayoutProps {

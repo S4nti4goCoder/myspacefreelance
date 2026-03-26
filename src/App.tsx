@@ -12,6 +12,10 @@ import ClientDashboardPage from "@/pages/client/ClientDashboardPage";
 import ClientProjectPage from "@/pages/client/ClientProjectPage";
 import ProfilePage from "@/pages/ProfilePage";
 import ReportsPage from "@/pages/ReportsPage";
+import ServicesPage from "@/pages/ServicesPage";
+import QuotesPage from "@/pages/QuotesPage";
+import QuoteEditorPage from "@/pages/QuoteEditorPage";
+import QuoteViewPage from "@/pages/QuoteViewPage";
 
 function ProtectedFreelancerRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuthStore();
@@ -132,6 +136,17 @@ export default function App() {
                 />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/reportes" element={<ReportsPage />} />
+                <Route path="/servicios" element={<ServicesPage />} />
+                <Route path="/cotizaciones" element={<QuotesPage />} />
+                <Route
+                  path="/cotizaciones/nueva"
+                  element={<QuoteEditorPage />}
+                />
+                <Route
+                  path="/cotizaciones/:id/editar"
+                  element={<QuoteEditorPage />}
+                />
+                <Route path="/cotizaciones/:id" element={<QuoteViewPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
