@@ -16,43 +16,50 @@ import ServicesPage from "@/pages/ServicesPage";
 import QuotesPage from "@/pages/QuotesPage";
 import QuoteEditorPage from "@/pages/QuoteEditorPage";
 import QuoteViewPage from "@/pages/QuoteViewPage";
+import CollaboratorsPage from "@/pages/CollaboratorsPage";
 
-function ProtectedFreelancerRoute({ children }: { children: React.ReactNode }) {
+function LoadingScreen() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Freelancer y colaborador entran al panel principal
+function ProtectedPanelRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuthStore();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (profile?.role === "client")
     return <Navigate to="/cliente/dashboard" replace />;
   return <>{children}</>;
 }
 
+// Solo el freelancer puede acceder a ciertas rutas
+function FreelancerOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, isLoading } = useAuthStore();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile?.role === "client")
+    return <Navigate to="/cliente/dashboard" replace />;
+  if (profile?.role === "collaborator") return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+// Solo clientes
 function ProtectedClientRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading } = useAuthStore();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (profile?.role === "freelancer") return <Navigate to="/" replace />;
+  if (profile?.role === "collaborator") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -124,16 +131,13 @@ export default function App() {
       <Route
         path="/*"
         element={
-          <ProtectedFreelancerRoute>
+          <ProtectedPanelRoute>
             <Layout>
               <Routes>
+                {/* Rutas compartidas — freelancer y colaborador */}
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/proyectos" element={<ProjectsPage />} />
                 <Route path="/proyectos/:id" element={<ProjectDetailPage />} />
-                <Route
-                  path="/cuentas-clientes"
-                  element={<ClientAccountsPage />}
-                />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/reportes" element={<ReportsPage />} />
                 <Route path="/servicios" element={<ServicesPage />} />
@@ -147,10 +151,27 @@ export default function App() {
                   element={<QuoteEditorPage />}
                 />
                 <Route path="/cotizaciones/:id" element={<QuoteViewPage />} />
+
+                {/* Cuentas — freelancer siempre, colaborador si tiene permiso */}
+                <Route
+                  path="/cuentas-clientes"
+                  element={<ClientAccountsPage />}
+                />
+
+                {/* Exclusivo del freelancer */}
+                <Route
+                  path="/colaboradores"
+                  element={
+                    <FreelancerOnlyRoute>
+                      <CollaboratorsPage />
+                    </FreelancerOnlyRoute>
+                  }
+                />
+
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
-          </ProtectedFreelancerRoute>
+          </ProtectedPanelRoute>
         }
       />
 

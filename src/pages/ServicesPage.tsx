@@ -16,6 +16,7 @@ import {
   useUpdateService,
   useDeleteService,
 } from "@/hooks/useServices";
+import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,10 @@ export default function ServicesPage() {
   const createService = useCreateService();
   const updateService = useUpdateService();
   const deleteService = useDeleteService();
+
+  const canCreate = useCanAccess("services", "can_create");
+  const canEdit = useCanAccess("services", "can_edit");
+  const canDelete = useCanAccess("services", "can_delete");
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -217,10 +222,12 @@ export default function ServicesPage() {
             {(services?.length ?? 0) !== 1 ? "s" : ""} en tu catálogo
           </p>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo servicio
-        </Button>
+        {canCreate && (
+          <Button onClick={handleOpenCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nuevo servicio
+          </Button>
+        )}
       </motion.div>
 
       {/* Search */}
@@ -266,7 +273,7 @@ export default function ServicesPage() {
               ? "No hay servicios con esa búsqueda"
               : "Aún no tienes servicios en tu catálogo"}
           </p>
-          {!search && (
+          {!search && canCreate && (
             <Button variant="outline" onClick={handleOpenCreate}>
               <Plus className="mr-2 h-4 w-4" />
               Agregar primer servicio
@@ -313,24 +320,30 @@ export default function ServicesPage() {
                             {service.description}
                           </p>
                         )}
-                        <div className="flex items-center justify-end gap-1 pt-1 border-t border-border">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleOpenEdit(service)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeletingService(service)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        {(canEdit || canDelete) && (
+                          <div className="flex items-center justify-end gap-1 pt-1 border-t border-border">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleOpenEdit(service)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeletingService(service)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>

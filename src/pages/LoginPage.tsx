@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, LogIn, Briefcase } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 
 export default function LoginPage() {
   const { user, profile } = useAuthStore();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +39,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -49,9 +50,26 @@ export default function LoginPage() {
       return;
     }
 
-    // El perfil y la navegación los maneja onAuthStateChange en App.tsx.
-    // Cuando el perfil cargue, ProtectedRoute redirige automáticamente.
-    toast.success("¡Bienvenido de vuelta!");
+    if (data.user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      useAuthStore.getState().setUser(data.user);
+      useAuthStore.getState().setProfile(profileData);
+      useAuthStore.getState().setIsLoading(false);
+
+      toast.success("¡Bienvenido de vuelta!");
+
+      if (profileData?.role === "client") {
+        navigate("/cliente/dashboard");
+      } else {
+        navigate("/");
+      }
+    }
+
     setIsLoading(false);
   };
 
@@ -128,7 +146,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Solo el freelancer puede acceder a este panel
+          Tu espacio de trabajo freelance
         </p>
       </motion.div>
     </div>

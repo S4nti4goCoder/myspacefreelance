@@ -16,6 +16,7 @@ import {
   Filter,
 } from "lucide-react";
 import { useQuotes, useUpdateQuote, useDeleteQuote } from "@/hooks/useQuotes";
+import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,6 +88,10 @@ export default function QuotesPage() {
   const updateQuote = useUpdateQuote();
   const deleteQuote = useDeleteQuote();
   const navigate = useNavigate();
+
+  const canCreate = useCanAccess("quotes", "can_create");
+  const canEdit = useCanAccess("quotes", "can_edit");
+  const canDelete = useCanAccess("quotes", "can_delete");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -183,7 +188,7 @@ export default function QuotesPage() {
               </>
             )}
           </Button>
-          {!showArchived && (
+          {!showArchived && canCreate && (
             <Button
               onClick={() => navigate("/cotizaciones/nueva")}
               className="gap-2"
@@ -277,7 +282,7 @@ export default function QuotesPage() {
                 ? "No hay cotizaciones con estos filtros"
                 : "Aún no tienes cotizaciones"}
           </p>
-          {!showArchived && !search && statusFilter === "all" && (
+          {!showArchived && !search && statusFilter === "all" && canCreate && (
             <Button
               variant="outline"
               onClick={() => navigate("/cotizaciones/nueva")}
@@ -348,23 +353,27 @@ export default function QuotesPage() {
                         <div className="flex gap-1">
                           {showArchived ? (
                             <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Desarchivar"
-                                onClick={() => handleUnarchive(quote)}
-                              >
-                                <ArchiveRestore className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeletingQuote(quote)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Desarchivar"
+                                  onClick={() => handleUnarchive(quote)}
+                                >
+                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeletingQuote(quote)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </>
                           ) : (
                             <>
@@ -379,68 +388,72 @@ export default function QuotesPage() {
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Editar"
-                                onClick={() =>
-                                  navigate(`/cotizaciones/${quote.id}/editar`)
-                                }
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                    title="Cambiar estado"
-                                  >
-                                    <ChevronDown className="h-3.5 w-3.5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    disabled
-                                    className="text-xs text-muted-foreground"
-                                  >
-                                    Cambiar estado
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {(
-                                    [
-                                      "draft",
-                                      "sent",
-                                      "accepted",
-                                      "rejected",
-                                    ] as const
-                                  )
-                                    .filter((s) => s !== quote.status)
-                                    .map((s) => (
-                                      <DropdownMenuItem
-                                        key={s}
-                                        onClick={() =>
-                                          updateQuote.mutate({
-                                            id: quote.id,
-                                            status: s,
-                                          })
-                                        }
-                                      >
-                                        {statusLabels[s]}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleArchive(quote)}
-                                    className="text-muted-foreground"
-                                  >
-                                    <Archive className="h-3.5 w-3.5 mr-2" />
-                                    Archivar
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Editar"
+                                  onClick={() =>
+                                    navigate(`/cotizaciones/${quote.id}/editar`)
+                                  }
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {canEdit && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                      title="Cambiar estado"
+                                    >
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      disabled
+                                      className="text-xs text-muted-foreground"
+                                    >
+                                      Cambiar estado
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {(
+                                      [
+                                        "draft",
+                                        "sent",
+                                        "accepted",
+                                        "rejected",
+                                      ] as const
+                                    )
+                                      .filter((s) => s !== quote.status)
+                                      .map((s) => (
+                                        <DropdownMenuItem
+                                          key={s}
+                                          onClick={() =>
+                                            updateQuote.mutate({
+                                              id: quote.id,
+                                              status: s,
+                                            })
+                                          }
+                                        >
+                                          {statusLabels[s]}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleArchive(quote)}
+                                      className="text-muted-foreground"
+                                    >
+                                      <Archive className="h-3.5 w-3.5 mr-2" />
+                                      Archivar
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </>
                           )}
                         </div>

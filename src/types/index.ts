@@ -6,7 +6,7 @@ export type ProjectStatus =
   | "cancelled"
   | "archived";
 export type TaskStatus = "todo" | "progress" | "review" | "done";
-export type UserRole = "freelancer" | "client";
+export type UserRole = "freelancer" | "client" | "collaborator";
 export type QuoteStatus =
   | "draft"
   | "sent"
@@ -14,6 +14,18 @@ export type QuoteStatus =
   | "rejected"
   | "archived";
 export type DiscountType = "percentage" | "fixed";
+
+export type CollaboratorModule =
+  | "projects"
+  | "tasks"
+  | "documents"
+  | "attachments"
+  | "payments"
+  | "quotes"
+  | "services"
+  | "clients"
+  | "comments"
+  | "reports";
 
 export interface Profile {
   id: string;
@@ -24,13 +36,11 @@ export interface Profile {
   notes: string | null;
   password_changed: boolean;
   created_at: string;
-  // Datos profesionales
   nit: string | null;
   address: string | null;
   city: string | null;
   website: string | null;
   logo_url: string | null;
-  // Configuración fiscal
   apply_iva: boolean;
   apply_retefuente: boolean;
   apply_reteica: boolean;
@@ -159,3 +169,28 @@ export interface Service {
   category: string | null;
   created_at: string;
 }
+
+export interface CollaboratorPermission {
+  id: string;
+  collaborator_id: string;
+  module: CollaboratorModule;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface Collaborator {
+  id: string;
+  collaborator_id: string;
+  owner_id: string;
+  created_at: string;
+  profile?: Profile;
+  permissions?: CollaboratorPermission[];
+  projects?: Project[];
+}
+
+// Mapa de permisos indexado por módulo para acceso rápido
+export type PermissionsMap = Partial<
+  Record<CollaboratorModule, CollaboratorPermission>
+>;

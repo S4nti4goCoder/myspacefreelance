@@ -12,6 +12,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useProject, useUpdateProject } from "@/hooks/useProjects";
+import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -57,6 +58,13 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id!);
   const updateProject = useUpdateProject();
+
+  const canEditProject = useCanAccess("projects", "can_edit");
+  const canViewTasks = useCanAccess("tasks", "can_view");
+  const canViewDocuments = useCanAccess("documents", "can_view");
+  const canViewAttachments = useCanAccess("attachments", "can_view");
+  const canViewPayments = useCanAccess("payments", "can_view");
+  const canViewComments = useCanAccess("comments", "can_view");
 
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
 
@@ -105,6 +113,17 @@ export default function ProjectDetailPage() {
     );
   }
 
+  // Determinar qué tabs mostrar según permisos
+  const visibleTabs = [
+    canViewTasks && "tareas",
+    canViewDocuments && "documentos",
+    canViewAttachments && "archivos",
+    canViewPayments && "pagos",
+    canViewComments && "comentarios",
+  ].filter(Boolean) as string[];
+
+  const defaultTab = visibleTabs[0] ?? "tareas";
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -140,26 +159,27 @@ export default function ProjectDetailPage() {
             )}
           </div>
 
-          {/* Archive / Unarchive button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsArchiveOpen(true)}
-            className="gap-2 shrink-0"
-            disabled={updateProject.isPending}
-          >
-            {isArchived ? (
-              <>
-                <ArchiveRestore className="h-4 w-4" />
-                Desarchivar
-              </>
-            ) : (
-              <>
-                <Archive className="h-4 w-4" />
-                Archivar
-              </>
-            )}
-          </Button>
+          {canEditProject && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsArchiveOpen(true)}
+              className="gap-2 shrink-0"
+              disabled={updateProject.isPending}
+            >
+              {isArchived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Desarchivar
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Archivar
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Archived banner */}
@@ -216,40 +236,65 @@ export default function ProjectDetailPage() {
         <Separator />
       </motion.div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="tareas">
-        <TabsList className="mb-4">
-          <TabsTrigger value="tareas">Tareas</TabsTrigger>
-          <TabsTrigger value="documentos">Documentación</TabsTrigger>
-          <TabsTrigger value="archivos">Archivos</TabsTrigger>
-          <TabsTrigger value="pagos">Pagos</TabsTrigger>
-          <TabsTrigger value="comentarios">Comentarios</TabsTrigger>
-        </TabsList>
+      {/* Tabs — solo muestra las que el colaborador puede ver */}
+      {visibleTabs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+          <AlertTriangle className="h-8 w-8" />
+          <p className="text-sm font-medium">
+            No tienes permisos para ver el contenido de este proyecto
+          </p>
+        </div>
+      ) : (
+        <Tabs defaultValue={defaultTab}>
+          <TabsList className="mb-4">
+            {canViewTasks && <TabsTrigger value="tareas">Tareas</TabsTrigger>}
+            {canViewDocuments && (
+              <TabsTrigger value="documentos">Documentación</TabsTrigger>
+            )}
+            {canViewAttachments && (
+              <TabsTrigger value="archivos">Archivos</TabsTrigger>
+            )}
+            {canViewPayments && <TabsTrigger value="pagos">Pagos</TabsTrigger>}
+            {canViewComments && (
+              <TabsTrigger value="comentarios">Comentarios</TabsTrigger>
+            )}
+          </TabsList>
 
-        <TabsContent value="tareas">
-          <KanbanBoard projectId={project.id} />
-        </TabsContent>
+          {canViewTasks && (
+            <TabsContent value="tareas">
+              <KanbanBoard projectId={project.id} />
+            </TabsContent>
+          )}
 
-        <TabsContent value="documentos">
-          <DocumentsTab projectId={project.id} />
-        </TabsContent>
+          {canViewDocuments && (
+            <TabsContent value="documentos">
+              <DocumentsTab projectId={project.id} />
+            </TabsContent>
+          )}
 
-        <TabsContent value="archivos">
-          <AttachmentsTab projectId={project.id} />
-        </TabsContent>
+          {canViewAttachments && (
+            <TabsContent value="archivos">
+              <AttachmentsTab projectId={project.id} />
+            </TabsContent>
+          )}
 
-        <TabsContent value="pagos">
-          <PaymentsTab projectId={project.id} />
-        </TabsContent>
+          {canViewPayments && (
+            <TabsContent value="pagos">
+              <PaymentsTab projectId={project.id} />
+            </TabsContent>
+          )}
 
-        <TabsContent value="comentarios">
-          <CommentsTab
-            projectId={project.id}
-            projectName={project.name}
-            projectOwnerId={project.user_id}
-          />
-        </TabsContent>
-      </Tabs>
+          {canViewComments && (
+            <TabsContent value="comentarios">
+              <CommentsTab
+                projectId={project.id}
+                projectName={project.name}
+                projectOwnerId={project.user_id}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
+      )}
 
       {/* Archive dialog */}
       <Dialog open={isArchiveOpen} onOpenChange={setIsArchiveOpen}>
@@ -311,20 +356,6 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Alert for archived project trying to delete */}
-      {isArchived && (
-        <Dialog>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                Proyecto archivado
-              </DialogTitle>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
   useDeleteProject,
   useDuplicateProject,
 } from "@/hooks/useProjects";
+import { useCanAccess } from "@/hooks/useMyPermissions";
 import ProjectForm from "@/components/shared/ProjectForm";
 import type { ProjectFormData } from "@/components/shared/ProjectForm";
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,10 @@ export default function ProjectsPage() {
   const deleteProject = useDeleteProject();
   const duplicateProject = useDuplicateProject();
 
+  const canCreate = useCanAccess("projects", "can_create");
+  const canEdit = useCanAccess("projects", "can_edit");
+  const canDelete = useCanAccess("projects", "can_delete");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -118,7 +123,6 @@ export default function ProjectsPage() {
     null,
   );
 
-  // Duplicate state
   const [duplicatingProject, setDuplicatingProject] = useState<Project | null>(
     null,
   );
@@ -129,7 +133,6 @@ export default function ProjectsPage() {
   );
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
 
-  // Load tasks when duplicate dialog opens
   useEffect(() => {
     if (!duplicatingProject) return;
     setDuplicateName(`Copia de ${duplicatingProject.name}`);
@@ -361,7 +364,7 @@ export default function ProjectsPage() {
               </>
             )}
           </Button>
-          {!showArchived && (
+          {!showArchived && canCreate && (
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nuevo proyecto
@@ -572,7 +575,7 @@ export default function ProjectsPage() {
               Limpiar filtros
             </Button>
           )}
-          {!showArchived && activeFiltersCount === 0 && (
+          {!showArchived && activeFiltersCount === 0 && canCreate && (
             <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Crear primer proyecto
@@ -669,55 +672,65 @@ export default function ProjectsPage() {
                   <div className="flex gap-1">
                     {showArchived ? (
                       <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Desarchivar"
-                          onClick={() => handleUnarchive(project)}
-                          disabled={updateProject.isPending}
-                        >
-                          <ArchiveRestore className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Eliminar permanentemente"
-                          onClick={() => setDeletingProject(project)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Desarchivar"
+                            onClick={() => handleUnarchive(project)}
+                            disabled={updateProject.isPending}
+                          >
+                            <ArchiveRestore className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Eliminar permanentemente"
+                            onClick={() => setDeletingProject(project)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Editar"
-                          onClick={() => setEditingProject(project)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          title="Duplicar"
-                          onClick={() => setDuplicatingProject(project)}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          title="Archivar"
-                          onClick={() => setArchivingProject(project)}
-                        >
-                          <Archive className="h-3.5 w-3.5" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Editar"
+                            onClick={() => setEditingProject(project)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canCreate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            title="Duplicar"
+                            onClick={() => setDuplicatingProject(project)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            title="Archivar"
+                            onClick={() => setArchivingProject(project)}
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
@@ -798,7 +811,6 @@ export default function ProjectsPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Nombre */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Nombre del nuevo proyecto
@@ -810,7 +822,6 @@ export default function ProjectsPage() {
               />
             </div>
 
-            {/* Tareas */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-foreground">

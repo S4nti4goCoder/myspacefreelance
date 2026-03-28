@@ -12,6 +12,8 @@ import {
   UserCircle,
   BarChart3,
   BookOpen,
+  Users,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -20,15 +22,60 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { cn } from "@/lib/utils";
-import { FileText } from "lucide-react";
+import { useMyPermissions } from "@/hooks/useMyPermissions";
+import type { CollaboratorModule } from "@/types";
 
-const navItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  end: boolean;
+  module?: CollaboratorModule;
+}
+
+const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, end: false },
-  { to: "/cuentas-clientes", label: "Cuentas", icon: UserCog, end: false },
-  { to: "/reportes", label: "Reportes", icon: BarChart3, end: false },
-  { to: "/servicios", label: "Mis servicios", icon: BookOpen, end: false },
-  { to: "/cotizaciones", label: "Cotizaciones", icon: FileText, end: false },
+  {
+    to: "/proyectos",
+    label: "Proyectos",
+    icon: FolderKanban,
+    end: false,
+    module: "projects",
+  },
+  {
+    to: "/cuentas-clientes",
+    label: "Cuentas",
+    icon: UserCog,
+    end: false,
+    module: "clients",
+  },
+  {
+    to: "/reportes",
+    label: "Reportes",
+    icon: BarChart3,
+    end: false,
+    module: "reports",
+  },
+  {
+    to: "/servicios",
+    label: "Mis servicios",
+    icon: BookOpen,
+    end: false,
+    module: "services",
+  },
+  {
+    to: "/cotizaciones",
+    label: "Cotizaciones",
+    icon: FileText,
+    end: false,
+    module: "quotes",
+  },
+  {
+    to: "/colaboradores",
+    label: "Colaboradores",
+    icon: Users,
+    end: false,
+  },
 ];
 
 interface LayoutProps {
@@ -111,6 +158,31 @@ interface SidebarContentProps {
 
 function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
   const { profile } = useAuthStore();
+  const { data: permissions, isLoading: permissionsLoading } =
+    useMyPermissions();
+  const isFreelancer = profile?.role === "freelancer";
+  const isCollaborator = profile?.role === "collaborator";
+
+  const visibleNavItems = navItems.filter((item) => {
+    // Dashboard siempre visible
+    if (item.to === "/" && !item.module) return true;
+
+    // Colaboradores solo para freelancer
+    if (item.to === "/colaboradores") return isFreelancer;
+
+    // Freelancer ve todo
+    if (isFreelancer) return true;
+
+    // Colaborador: esperar a que carguen los permisos
+    if (isCollaborator && permissionsLoading) return false;
+
+    // Colaborador: solo mostrar si tiene can_view en ese módulo
+    if (isCollaborator && item.module) {
+      return permissions?.[item.module]?.can_view === true;
+    }
+
+    return false;
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -133,7 +205,7 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
       <Separator />
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -157,7 +229,6 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
       <Separator />
 
       <div className="px-3 py-4 space-y-1">
-        {/* Profile link */}
         <NavLink
           to="/perfil"
           onClick={onClose}
@@ -173,6 +244,14 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
           <UserCircle className="h-4 w-4 shrink-0" />
           <span className="truncate">{profile?.name ?? "Mi perfil"}</span>
         </NavLink>
+
+        {isCollaborator && (
+          <div className="px-3 py-1">
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              Colaborador
+            </span>
+          </div>
+        )}
 
         <ThemeToggle showLabel />
 
