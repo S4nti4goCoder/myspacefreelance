@@ -201,7 +201,7 @@ export function useUpdateClientProfile() {
       queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
       toast.success("Cliente actualizado exitosamente");
     },
-    onError: () => toast.error("Error al actualizar el cliente"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar el cliente"),
   });
 }
 
@@ -215,7 +215,7 @@ export function useAssignProjectToClient() {
       queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       toast.success("Proyecto asignado al cliente");
     },
-    onError: () => toast.error("Error al asignar proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al asignar proyecto"),
   });
 }
 
@@ -229,7 +229,7 @@ export function useRemoveProjectFromClient() {
       queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       toast.success("Proyecto removido del cliente");
     },
-    onError: () => toast.error("Error al remover proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al remover proyecto"),
   });
 }
 

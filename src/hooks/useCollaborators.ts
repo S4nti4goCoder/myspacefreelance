@@ -220,7 +220,7 @@ export function useUpdatePermissions() {
       });
       toast.success("Permisos guardados exitosamente");
     },
-    onError: () => toast.error("Error al guardar los permisos"),
+    onError: (error: Error) => toast.error(error.message || "Error al guardar los permisos"),
   });
 }
 
@@ -232,7 +232,7 @@ export function useUpdateCollaboratorProjects() {
       queryClient.invalidateQueries({ queryKey: ["collaborators"] });
       toast.success("Proyectos asignados exitosamente");
     },
-    onError: () => toast.error("Error al asignar los proyectos"),
+    onError: (error: Error) => toast.error(error.message || "Error al asignar los proyectos"),
   });
 }
 
@@ -244,7 +244,7 @@ export function useDeleteCollaborator() {
       queryClient.invalidateQueries({ queryKey: ["collaborators"] });
       toast.success("Colaborador eliminado");
     },
-    onError: () => toast.error("Error al eliminar el colaborador"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el colaborador"),
   });
 }
 

@@ -71,7 +71,7 @@ export function useCreatePayment() {
       });
       toast.success("Pago registrado exitosamente");
     },
-    onError: () => toast.error("Error al registrar el pago"),
+    onError: (error: Error) => toast.error(error.message || "Error al registrar el pago"),
   });
 }
 
@@ -86,7 +86,7 @@ export function useUpdatePayment() {
       });
       toast.success("Pago actualizado exitosamente");
     },
-    onError: () => toast.error("Error al actualizar el pago"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar el pago"),
   });
 }
 
@@ -101,6 +101,6 @@ export function useDeletePayment() {
       });
       toast.success("Pago eliminado");
     },
-    onError: () => toast.error("Error al eliminar el pago"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el pago"),
   });
 }

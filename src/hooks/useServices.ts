@@ -61,7 +61,7 @@ export function useCreateService() {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast.success("Servicio creado exitosamente");
     },
-    onError: () => toast.error("Error al crear el servicio"),
+    onError: (error: Error) => toast.error(error.message || "Error al crear el servicio"),
   });
 }
 
@@ -73,7 +73,7 @@ export function useUpdateService() {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast.success("Servicio actualizado exitosamente");
     },
-    onError: () => toast.error("Error al actualizar el servicio"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar el servicio"),
   });
 }
 
@@ -85,6 +85,6 @@ export function useDeleteService() {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast.success("Servicio eliminado");
     },
-    onError: () => toast.error("Error al eliminar el servicio"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el servicio"),
   });
 }

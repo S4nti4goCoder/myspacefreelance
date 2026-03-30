@@ -225,7 +225,7 @@ export function useCreateProject() {
       queryClient.invalidateQueries({ queryKey: ["client-projects"] });
       toast.success("Proyecto creado exitosamente");
     },
-    onError: () => toast.error("Error al crear el proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al crear el proyecto"),
   });
 }
 
@@ -241,7 +241,7 @@ export function useUpdateProject() {
       queryClient.invalidateQueries({ queryKey: ["project-client-accounts"] });
       toast.success("Proyecto actualizado exitosamente");
     },
-    onError: () => toast.error("Error al actualizar el proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar el proyecto"),
   });
 }
 
@@ -254,7 +254,7 @@ export function useDuplicateProject() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Proyecto duplicado exitosamente");
     },
-    onError: () => toast.error("Error al duplicar el proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al duplicar el proyecto"),
   });
 }
 
@@ -267,6 +267,6 @@ export function useDeleteProject() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Proyecto eliminado exitosamente");
     },
-    onError: () => toast.error("Error al eliminar el proyecto"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el proyecto"),
   });
 }

@@ -122,7 +122,7 @@ export function useCreateQuote() {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success("Cotización creada exitosamente");
     },
-    onError: () => toast.error("Error al crear la cotización"),
+    onError: (error: Error) => toast.error(error.message || "Error al crear la cotización"),
   });
 }
 
@@ -135,7 +135,7 @@ export function useUpdateQuote() {
       queryClient.invalidateQueries({ queryKey: ["quotes", data.id] });
       toast.success("Cotización actualizada");
     },
-    onError: () => toast.error("Error al actualizar la cotización"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar la cotización"),
   });
 }
 
@@ -147,6 +147,6 @@ export function useDeleteQuote() {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success("Cotización eliminada");
     },
-    onError: () => toast.error("Error al eliminar la cotización"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar la cotización"),
   });
 }

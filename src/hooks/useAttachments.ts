@@ -87,7 +87,7 @@ export function useUploadAttachment() {
       });
       toast.success("Archivo subido exitosamente");
     },
-    onError: () => toast.error("Error al subir el archivo"),
+    onError: (error: Error) => toast.error(error.message || "Error al subir el archivo"),
   });
 }
 
@@ -100,6 +100,6 @@ export function useDeleteAttachment() {
       queryClient.invalidateQueries({ queryKey: ["attachments"] });
       toast.success("Archivo eliminado");
     },
-    onError: () => toast.error("Error al eliminar el archivo"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el archivo"),
   });
 }

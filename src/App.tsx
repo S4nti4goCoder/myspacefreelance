@@ -1,22 +1,27 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import Layout from "@/components/shared/Layout";
-import LoginPage from "@/pages/LoginPage";
-import DashboardPage from "@/pages/DashboardPage";
-import ProjectsPage from "@/pages/ProjectsPage";
-import ProjectDetailPage from "@/pages/ProjectDetailPage";
-import ClientAccountsPage from "@/pages/ClientAccountsPage";
-import ClientDashboardPage from "@/pages/client/ClientDashboardPage";
-import ClientProjectPage from "@/pages/client/ClientProjectPage";
-import ProfilePage from "@/pages/ProfilePage";
-import ReportsPage from "@/pages/ReportsPage";
-import ServicesPage from "@/pages/ServicesPage";
-import QuotesPage from "@/pages/QuotesPage";
-import QuoteEditorPage from "@/pages/QuoteEditorPage";
-import QuoteViewPage from "@/pages/QuoteViewPage";
-import CollaboratorsPage from "@/pages/CollaboratorsPage";
+
+const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const ProjectsPage = lazy(() => import("@/pages/ProjectsPage"));
+const ProjectDetailPage = lazy(() => import("@/pages/ProjectDetailPage"));
+const ClientAccountsPage = lazy(() => import("@/pages/ClientAccountsPage"));
+const ClientDashboardPage = lazy(
+  () => import("@/pages/client/ClientDashboardPage"),
+);
+const ClientProjectPage = lazy(
+  () => import("@/pages/client/ClientProjectPage"),
+);
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
+const ServicesPage = lazy(() => import("@/pages/ServicesPage"));
+const QuotesPage = lazy(() => import("@/pages/QuotesPage"));
+const QuoteEditorPage = lazy(() => import("@/pages/QuoteEditorPage"));
+const QuoteViewPage = lazy(() => import("@/pages/QuoteViewPage"));
+const CollaboratorsPage = lazy(() => import("@/pages/CollaboratorsPage"));
 
 function LoadingScreen() {
   return (
@@ -137,15 +142,16 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-      <Route
-        path="/*"
-        element={
-          <ProtectedPanelRoute>
-            <Layout>
-              <Routes>
+        <Route
+          path="/*"
+          element={
+            <ProtectedPanelRoute>
+              <Layout>
+                <Routes>
                 {/* Rutas compartidas — freelancer y colaborador */}
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/proyectos" element={<ProjectsPage />} />
@@ -202,6 +208,7 @@ export default function App() {
           </ProtectedClientRoute>
         }
       />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

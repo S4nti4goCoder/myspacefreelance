@@ -32,6 +32,17 @@ import type { Attachment } from "@/types";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+const ALLOWED_EXTENSIONS = new Set([
+  // Documentos
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt", ".rtf", ".odt", ".ods",
+  // Imágenes
+  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp",
+  // Diseño / multimedia
+  ".psd", ".ai", ".fig", ".sketch", ".mp4", ".mp3", ".wav",
+  // Código / datos
+  ".json", ".xml", ".html", ".css", ".js", ".ts", ".zip", ".rar", ".7z",
+]);
+
 interface AttachmentsTabProps {
   projectId: string;
 }
@@ -134,6 +145,11 @@ export default function AttachmentsTab({ projectId }: AttachmentsTabProps) {
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
     Array.from(files).forEach((file) => {
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        toast.error(`"${file.name}" — tipo de archivo no permitido`);
+        return;
+      }
       if (file.size > MAX_FILE_SIZE) {
         toast.error(`"${file.name}" supera el límite de 10MB`);
         return;

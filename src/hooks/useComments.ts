@@ -79,7 +79,7 @@ export function useCreateComment() {
         queryKey: ["comments", data.project_id],
       });
     },
-    onError: () => toast.error("Error al enviar el comentario"),
+    onError: (error: Error) => toast.error(error.message || "Error al enviar el comentario"),
   });
 }
 
@@ -92,6 +92,6 @@ export function useDeleteComment() {
       queryClient.invalidateQueries({ queryKey: ["comments"] });
       toast.success("Comentario eliminado");
     },
-    onError: () => toast.error("Error al eliminar el comentario"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el comentario"),
   });
 }

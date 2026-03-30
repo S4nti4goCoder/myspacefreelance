@@ -73,7 +73,7 @@ export function useCreateDocument() {
       });
       toast.success("Documento creado exitosamente");
     },
-    onError: () => toast.error("Error al crear el documento"),
+    onError: (error: Error) => toast.error(error.message || "Error al crear el documento"),
   });
 }
 
@@ -88,7 +88,7 @@ export function useUpdateDocument() {
       });
       toast.success("Documento guardado");
     },
-    onError: () => toast.error("Error al guardar el documento"),
+    onError: (error: Error) => toast.error(error.message || "Error al guardar el documento"),
   });
 }
 
@@ -103,6 +103,6 @@ export function useDeleteDocument() {
       });
       toast.success("Documento eliminado");
     },
-    onError: () => toast.error("Error al eliminar el documento"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar el documento"),
   });
 }

@@ -74,7 +74,7 @@ export function useCreateTask() {
       });
       toast.success("Tarea creada exitosamente");
     },
-    onError: () => toast.error("Error al crear la tarea"),
+    onError: (error: Error) => toast.error(error.message || "Error al crear la tarea"),
   });
 }
 
@@ -91,7 +91,7 @@ export function useUpdateTask() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: () => toast.error("Error al actualizar la tarea"),
+    onError: (error: Error) => toast.error(error.message || "Error al actualizar la tarea"),
   });
 }
 
@@ -117,6 +117,6 @@ export function useDeleteTask() {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Tarea eliminada");
     },
-    onError: () => toast.error("Error al eliminar la tarea"),
+    onError: (error: Error) => toast.error(error.message || "Error al eliminar la tarea"),
   });
 }
