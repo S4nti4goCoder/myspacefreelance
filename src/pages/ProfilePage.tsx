@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
@@ -25,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
+  usePageTitle("Perfil");
   const { user, profile, setProfile } = useAuthStore();
 
   // Información personal

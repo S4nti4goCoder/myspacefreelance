@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,6 +64,7 @@ function calculateTotal(quote: Quote): number {
 }
 
 export default function QuotesPage() {
+  usePageTitle("Cotizaciones");
   const { data: quotes, isLoading } = useQuotes();
   const updateQuote = useUpdateQuote();
   const deleteQuote = useDeleteQuote();

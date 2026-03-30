@@ -170,6 +170,7 @@ export default function DocumentsTab({ projectId }: DocumentsTabProps) {
                     e.stopPropagation();
                     setDeletingDoc(doc);
                   }}
+                  aria-label="Eliminar documento"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>

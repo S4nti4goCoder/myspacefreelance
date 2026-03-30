@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -92,6 +93,7 @@ function ClientProjectsManager({ client }: { client: Profile }) {
               className="h-6 w-6 text-destructive hover:bg-destructive/10"
               onClick={() => removeProject.mutate(cp.id)}
               disabled={removeProject.isPending}
+              aria-label="Remover proyecto"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -129,6 +131,7 @@ function ClientProjectsManager({ client }: { client: Profile }) {
 }
 
 export default function ClientAccountsPage() {
+  usePageTitle("Clientes");
   const { data: clients, isLoading } = useClientAccounts();
   const registerClient = useRegisterClient();
   const updateClient = useUpdateClientProfile();
@@ -357,6 +360,7 @@ export default function ClientAccountsPage() {
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => handleOpenEdit(client)}
+                      aria-label="Editar cliente"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -365,6 +369,7 @@ export default function ClientAccountsPage() {
                       size="icon"
                       className="h-7 w-7 text-blue-500 hover:text-blue-500 hover:bg-blue-500/10"
                       onClick={() => handleOpenReset(client)}
+                      aria-label="Restablecer contraseña"
                     >
                       <KeyRound className="h-3.5 w-3.5" />
                     </Button>
@@ -373,6 +378,7 @@ export default function ClientAccountsPage() {
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setDeletingClient(client)}
+                      aria-label="Eliminar cliente"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

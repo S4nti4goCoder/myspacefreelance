@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +35,7 @@ import type { Collaborator } from "@/types";
 import CollaboratorPermissionsPage from "@/pages/CollaboratorPermissionsPage";
 
 export default function CollaboratorsPage() {
+  usePageTitle("Colaboradores");
   const { data: collaborators, isLoading } = useCollaborators();
   const createCollaborator = useCreateCollaborator();
   const deleteCollaborator = useDeleteCollaborator();

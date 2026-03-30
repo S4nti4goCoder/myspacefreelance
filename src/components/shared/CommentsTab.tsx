@@ -22,8 +22,6 @@ import type { Comment } from "@/types";
 
 interface CommentsTabProps {
   projectId: string;
-  projectName?: string;
-  projectOwnerId?: string;
 }
 
 export default function CommentsTab({ projectId }: CommentsTabProps) {
@@ -184,6 +182,7 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
             onClick={handleSend}
             disabled={!message.trim() || createComment.isPending}
             className="shrink-0"
+            aria-label="Enviar comentario"
           >
             {createComment.isPending ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />

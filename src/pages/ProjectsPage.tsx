@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,6 +78,7 @@ const sortLabels: Record<SortOption, string> = {
 };
 
 export default function ProjectsPage() {
+  usePageTitle("Proyectos");
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();

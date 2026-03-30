@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -77,6 +78,7 @@ async function fetchClientProjectsWithTasks(
 }
 
 export default function ClientDashboardPage() {
+  usePageTitle("Mis proyectos");
   const { user, profile } = useAuthStore();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectWithTasks[]>([]);

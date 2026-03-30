@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -103,6 +104,7 @@ import {
 } from "@/lib/constants";
 
 export default function ReportsPage() {
+  usePageTitle("Reportes");
   const { data, isLoading } = useQuery({
     queryKey: ["reports"],
     queryFn: fetchReportsData,

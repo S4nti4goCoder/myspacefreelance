@@ -140,6 +140,7 @@ export default function Layout({ children }: LayoutProps) {
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menú"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -196,7 +197,7 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
           </span>
         </div>
         {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar menú">
             <X className="h-4 w-4" />
           </Button>
         )}

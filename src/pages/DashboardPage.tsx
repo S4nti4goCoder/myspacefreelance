@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -53,6 +54,7 @@ async function fetchDashboardData() {
 }
 
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: fetchDashboardData,

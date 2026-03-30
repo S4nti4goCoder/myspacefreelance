@@ -27,6 +27,7 @@ export default function ThemeToggle({ showLabel = false }: ThemeToggleProps) {
           variant="ghost"
           size={showLabel ? "sm" : "icon"}
           className={showLabel ? "w-full justify-start gap-3 px-3" : ""}
+          aria-label={showLabel ? undefined : "Cambiar tema"}
         >
           <ThemeIcon className="h-4 w-4" />
           {showLabel && <span className="text-sm">{themeLabel}</span>}

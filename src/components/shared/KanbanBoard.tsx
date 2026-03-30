@@ -226,6 +226,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                     size="icon"
                     className="h-6 w-6"
                     onClick={() => openCreate(col.id)}
+                    aria-label="Agregar tarea"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
@@ -294,6 +295,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                                   size="icon"
                                   className="h-6 w-6"
                                   onClick={() => openEdit(task)}
+                                  aria-label="Editar tarea"
                                 >
                                   <Pencil className="h-3 w-3" />
                                 </Button>
@@ -302,6 +304,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                                   size="icon"
                                   className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
                                   onClick={() => setDeletingTask(task)}
+                                  aria-label="Eliminar tarea"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>

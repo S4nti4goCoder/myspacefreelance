@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -38,6 +39,7 @@ import {
 } from "@/lib/constants";
 
 export default function ProjectDetailPage() {
+  usePageTitle("Proyecto");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id!);
@@ -270,11 +272,7 @@ export default function ProjectDetailPage() {
 
           {canViewComments && (
             <TabsContent value="comentarios">
-              <CommentsTab
-                projectId={project.id}
-                projectName={project.name}
-                projectOwnerId={project.user_id}
-              />
+              <CommentsTab projectId={project.id} />
             </TabsContent>
           )}
         </Tabs>

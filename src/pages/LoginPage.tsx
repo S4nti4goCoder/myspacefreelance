@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
+  usePageTitle("Iniciar sesión");
   const { user, profile } = useAuthStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");

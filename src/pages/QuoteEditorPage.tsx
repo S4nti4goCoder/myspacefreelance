@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -52,6 +53,7 @@ const ACCENT_BLUE = "#1B2A4A";
 const ACCENT_RED = "#E63946";
 
 export default function QuoteEditorPage() {
+  usePageTitle("Editor de cotización");
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { profile } = useAuthStore();

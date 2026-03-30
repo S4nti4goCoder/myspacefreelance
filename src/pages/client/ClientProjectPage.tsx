@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -51,6 +52,7 @@ function formatSize(bytes: number | null) {
 }
 
 export default function ClientProjectPage() {
+  usePageTitle("Proyecto");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuthStore();

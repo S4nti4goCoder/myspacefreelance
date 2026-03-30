@@ -303,6 +303,7 @@ export default function AttachmentsTab({ projectId }: AttachmentsTabProps) {
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => setPreviewAttachment(attachment)}
+                        aria-label="Vista previa"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -313,6 +314,7 @@ export default function AttachmentsTab({ projectId }: AttachmentsTabProps) {
                       className="h-7 w-7"
                       onClick={() => handleDownload(attachment)}
                       disabled={downloadingId === attachment.id}
+                      aria-label="Descargar"
                     >
                       {downloadingId === attachment.id ? (
                         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -325,6 +327,7 @@ export default function AttachmentsTab({ projectId }: AttachmentsTabProps) {
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setDeletingAttachment(attachment)}
+                      aria-label="Eliminar"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

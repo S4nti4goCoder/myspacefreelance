@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
@@ -49,6 +50,7 @@ const emptyForm: ServiceFormData = {
 };
 
 export default function ServicesPage() {
+  usePageTitle("Servicios");
   const { data: services, isLoading } = useServices();
   const createService = useCreateService();
   const updateService = useUpdateService();
