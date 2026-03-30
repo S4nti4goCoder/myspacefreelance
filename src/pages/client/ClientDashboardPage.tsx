@@ -150,8 +150,8 @@ export default function ClientDashboardPage() {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+    if (passwordForm.newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
       return;
     }
     setIsChangingPassword(true);
@@ -218,6 +218,19 @@ export default function ClientDashboardPage() {
         </div>
       </header>
 
+      {isLoading ? (
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+            ))}
+          </div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />
+          ))}
+        </div>
+      ) : (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -378,6 +391,7 @@ export default function ClientDashboardPage() {
           </div>
         )}
       </div>
+      )}
 
       <Dialog
         open={isPasswordOpen}

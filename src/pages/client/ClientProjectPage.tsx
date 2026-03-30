@@ -178,10 +178,15 @@ export default function ClientProjectPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Cargando proyecto...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+            ))}
+          </div>
+          <div className="h-64 bg-muted animate-pulse rounded-xl" />
         </div>
       </div>
     );

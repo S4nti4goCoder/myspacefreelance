@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -20,6 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,6 +140,19 @@ export default function QuoteEditorPage() {
     }
   }, [profile, existingQuote, isEditing]);
 
+  // Track dirty state for unsaved changes warning
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = useCallback(() => setIsDirty(true), []);
+
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0),
     [items],
@@ -151,6 +172,7 @@ export default function QuoteEditorPage() {
   const total = afterDiscount + ivaAmount - retefuenteAmount - reteicaAmount;
 
   const addItem = () => {
+    markDirty();
     setItems((prev) => [
       ...prev,
       {
@@ -165,6 +187,7 @@ export default function QuoteEditorPage() {
 
   const removeItem = (tempId: string) => {
     if (items.length === 1) return;
+    markDirty();
     setItems((prev) => prev.filter((i) => i.tempId !== tempId));
   };
 
@@ -181,6 +204,7 @@ export default function QuoteEditorPage() {
   const addServiceToItems = (serviceId: string) => {
     const service = services?.find((s) => s.id === serviceId);
     if (!service) return;
+    markDirty();
     setItems((prev) => [
       ...prev,
       {
@@ -260,7 +284,12 @@ export default function QuoteEditorPage() {
           ...baseData,
           items: getItemsInput(),
         },
-        { onSuccess: () => navigate("/cotizaciones") },
+        {
+          onSuccess: () => {
+            setIsDirty(false);
+            navigate("/cotizaciones");
+          },
+        },
       );
     } else {
       // En creación NO enviamos quote_number: el trigger SQL lo genera
@@ -272,8 +301,8 @@ export default function QuoteEditorPage() {
         },
         {
           onSuccess: (data) => {
-            // Actualizamos el número visible con el que generó el trigger
             setQuoteNumber(data.quote_number);
+            setIsDirty(false);
             navigate("/cotizaciones");
           },
         },
@@ -550,7 +579,7 @@ export default function QuoteEditorPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* ===== LEFT — FORM ===== */}
-        <div className="space-y-6">
+        <div className="space-y-6" onChange={markDirty}>
           {/* Quote metadata */}
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -1494,6 +1523,33 @@ export default function QuoteEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Unsaved changes dialog */}
+      <Dialog
+        open={blocker.state === "blocked"}
+        onOpenChange={(open) => !open && blocker.reset?.()}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cambios sin guardar</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar en esta cotización. ¿Deseas salir sin
+              guardar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => blocker.reset?.()}>
+              Seguir editando
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => blocker.proceed?.()}
+            >
+              Salir sin guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
