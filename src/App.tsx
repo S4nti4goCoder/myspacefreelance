@@ -64,11 +64,12 @@ function ProtectedClientRoute({ children }: { children: React.ReactNode }) {
 }
 
 async function loadProfile(userId: string) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .single();
+  if (error) throw error;
   return data;
 }
 
@@ -80,20 +81,25 @@ export default function App() {
     initializedRef.current = true;
 
     const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        useAuthStore.getState().setUser(session.user);
-        const profile = await loadProfile(session.user.id);
-        useAuthStore.getState().setProfile(profile);
-      } else {
+        if (session?.user) {
+          useAuthStore.getState().setUser(session.user);
+          const profile = await loadProfile(session.user.id);
+          useAuthStore.getState().setProfile(profile);
+        } else {
+          useAuthStore.getState().setUser(null);
+          useAuthStore.getState().setProfile(null);
+        }
+      } catch {
         useAuthStore.getState().setUser(null);
         useAuthStore.getState().setProfile(null);
+      } finally {
+        useAuthStore.getState().setIsLoading(false);
       }
-
-      useAuthStore.getState().setIsLoading(false);
     };
 
     init();
@@ -114,10 +120,16 @@ export default function App() {
           event === "INITIAL_SESSION") &&
         session?.user
       ) {
-        useAuthStore.getState().setUser(session.user);
-        const profile = await loadProfile(session.user.id);
-        useAuthStore.getState().setProfile(profile);
-        useAuthStore.getState().setIsLoading(false);
+        try {
+          useAuthStore.getState().setUser(session.user);
+          const profile = await loadProfile(session.user.id);
+          useAuthStore.getState().setProfile(profile);
+        } catch {
+          useAuthStore.getState().setUser(null);
+          useAuthStore.getState().setProfile(null);
+        } finally {
+          useAuthStore.getState().setIsLoading(false);
+        }
       }
     });
 
