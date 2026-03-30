@@ -38,32 +38,11 @@ import {
 } from "@/components/ui/dialog";
 import { formatCOP, formatDate } from "@/lib/utils";
 import type { Quote } from "@/types";
-
-const statusLabels: Record<string, string> = {
-  draft: "Borrador",
-  sent: "Enviada",
-  accepted: "Aceptada",
-  rejected: "Rechazada",
-  archived: "Archivada",
-};
-
-type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
-
-const statusVariants: Record<string, BadgeVariant> = {
-  draft: "secondary",
-  sent: "default",
-  accepted: "default",
-  rejected: "destructive",
-  archived: "secondary",
-};
-
-const statusColors: Record<string, string> = {
-  draft: "text-muted-foreground",
-  sent: "text-blue-500",
-  accepted: "text-green-500",
-  rejected: "text-destructive",
-  archived: "text-muted-foreground",
-};
+import {
+  QUOTE_STATUS_LABELS as statusLabels,
+  QUOTE_STATUS_VARIANTS as statusVariants,
+  QUOTE_STATUS_COLORS as statusColors,
+} from "@/lib/constants";
 
 function calculateTotal(quote: Quote): number {
   const items = quote.items ?? [];

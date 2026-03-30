@@ -51,37 +51,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDateShort, formatCOP } from "@/lib/utils";
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+  PROJECT_STATUS_COLORS as statusColors,
+} from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import type { Project, Task } from "@/types";
-
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-  archived: "Archivado",
-};
-
-type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
-
-const statusVariants: Record<string, BadgeVariant> = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-  archived: "secondary",
-};
-
-const statusColors: Record<string, string> = {
-  todo: "text-muted-foreground",
-  progress: "text-blue-500",
-  review: "text-orange-500",
-  done: "text-green-500",
-  cancelled: "text-destructive",
-  archived: "text-muted-foreground",
-};
 
 type SortOption =
   | "created_desc"

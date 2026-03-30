@@ -96,23 +96,10 @@ async function fetchReportsData() {
   };
 }
 
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-};
-
-type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
-
-const statusVariants: Record<string, BadgeVariant> = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-};
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+} from "@/lib/constants";
 
 export default function ReportsPage() {
   const { data, isLoading } = useQuery({

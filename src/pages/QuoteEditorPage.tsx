@@ -34,18 +34,11 @@ import { formatCOP } from "@/lib/utils";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import type { QuoteItem, QuoteStatus } from "@/types";
+import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
 
 interface ItemRow extends Omit<QuoteItem, "id" | "quote_id"> {
   tempId: string;
 }
-
-const statusLabels: Record<QuoteStatus, string> = {
-  draft: "Borrador",
-  sent: "Enviada",
-  accepted: "Aceptada",
-  rejected: "Rechazada",
-  archived: "Archivada",
-};
 
 const ACCENT_BLUE = "#1B2A4A";
 const ACCENT_RED = "#E63946";

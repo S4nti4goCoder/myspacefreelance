@@ -35,13 +35,7 @@ import {
   useUpdateTasksOrder,
 } from "@/hooks/useTasks";
 import type { Task, TaskStatus } from "@/types";
-
-const columns: { id: TaskStatus; label: string; color: string }[] = [
-  { id: "todo", label: "Pendiente", color: "text-muted-foreground" },
-  { id: "progress", label: "En progreso", color: "text-blue-500" },
-  { id: "review", label: "En revisión", color: "text-orange-500" },
-  { id: "done", label: "Completado", color: "text-green-500" },
-];
+import { TASK_COLUMNS as columns } from "@/lib/constants";
 
 interface TaskFormData {
   title: string;

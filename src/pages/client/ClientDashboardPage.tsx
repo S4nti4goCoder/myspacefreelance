@@ -35,32 +35,11 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "@/lib/utils";
 import type { Project, Task } from "@/types";
-
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-};
-
-type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
-
-const statusVariants: Record<string, BadgeVariant> = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-};
-
-const statusColors: Record<string, string> = {
-  todo: "text-muted-foreground",
-  progress: "text-blue-500",
-  review: "text-orange-500",
-  done: "text-green-500",
-  cancelled: "text-destructive",
-};
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+  PROJECT_STATUS_COLORS as statusColors,
+} from "@/lib/constants";
 
 interface ProjectWithTasks extends Project {
   tasks: Task[];

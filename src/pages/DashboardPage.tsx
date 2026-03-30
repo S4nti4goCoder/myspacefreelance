@@ -15,24 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { Project, Profile } from "@/types";
 import GlobalSearch from "@/components/shared/GlobalSearch";
-
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-};
-
-const statusVariants: {
-  [key: string]: "default" | "secondary" | "outline" | "destructive";
-} = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-};
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+} from "@/lib/constants";
 
 async function fetchDashboardData() {
   const [projectsRes, clientsRes, tasksRes] = await Promise.all([

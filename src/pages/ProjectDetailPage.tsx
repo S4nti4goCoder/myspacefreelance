@@ -32,26 +32,10 @@ import AttachmentsTab from "@/components/shared/AttachmentsTab";
 import PaymentsTab from "@/components/shared/PaymentsTab";
 import CommentsTab from "@/components/shared/CommentsTab";
 import { formatDate, formatCOP } from "@/lib/utils";
-
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-  archived: "Archivado",
-};
-
-const statusVariants: {
-  [key: string]: "default" | "secondary" | "outline" | "destructive";
-} = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-  archived: "secondary",
-};
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+} from "@/lib/constants";
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();

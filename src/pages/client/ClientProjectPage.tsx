@@ -36,38 +36,12 @@ import {
   formatCOP,
 } from "@/lib/utils";
 import type { Project, Task, Document, Attachment, Comment } from "@/types";
-
-const statusLabels: Record<string, string> = {
-  todo: "Pendiente",
-  progress: "En progreso",
-  review: "En revisión",
-  done: "Completado",
-  cancelled: "Cancelado",
-};
-
-type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
-
-const statusVariants: Record<string, BadgeVariant> = {
-  todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
-  cancelled: "destructive",
-};
-
-const taskStatusColors: Record<string, string> = {
-  todo: "bg-muted-foreground",
-  progress: "bg-blue-500",
-  review: "bg-orange-500",
-  done: "bg-green-500",
-};
-
-const taskColumns: { id: Task["status"]; label: string; color: string }[] = [
-  { id: "todo", label: "Pendiente", color: "text-muted-foreground" },
-  { id: "progress", label: "En progreso", color: "text-blue-500" },
-  { id: "review", label: "En revisión", color: "text-orange-500" },
-  { id: "done", label: "Completado", color: "text-green-500" },
-];
+import {
+  PROJECT_STATUS_LABELS as statusLabels,
+  PROJECT_STATUS_VARIANTS as statusVariants,
+  TASK_STATUS_BG as taskStatusColors,
+  TASK_COLUMNS as taskColumns,
+} from "@/lib/constants";
 
 function formatSize(bytes: number | null) {
   if (!bytes) return "—";
