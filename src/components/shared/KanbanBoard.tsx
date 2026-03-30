@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -67,10 +67,26 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     status: "todo",
   });
 
-  const getColumnTasks = (status: TaskStatus) =>
-    tasks
-      .filter((t) => t.status === status)
-      .sort((a, b) => a.order_index - b.order_index);
+  const tasksByStatus = useMemo(() => {
+    const map: Record<TaskStatus, Task[]> = {
+      todo: [],
+      progress: [],
+      review: [],
+      done: [],
+    };
+    tasks.forEach((t) => {
+      map[t.status]?.push(t);
+    });
+    Object.values(map).forEach((arr) =>
+      arr.sort((a, b) => a.order_index - b.order_index),
+    );
+    return map;
+  }, [tasks]);
+
+  const getColumnTasks = useCallback(
+    (status: TaskStatus) => tasksByStatus[status],
+    [tasksByStatus],
+  );
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;

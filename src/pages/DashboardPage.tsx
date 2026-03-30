@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -13,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { Project, Profile } from "@/types";
+import type { Project } from "@/types";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 import {
   PROJECT_STATUS_LABELS as statusLabels,
@@ -25,19 +26,19 @@ async function fetchDashboardData() {
     supabase
       .from("projects")
       .select(
-        `*,
+        `id, name, status, progress, due_date, created_at,
         project_clients!left(
           client:profiles(id, name)
         )`,
       )
       .order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id").eq("role", "client"),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "client"),
     supabase.from("tasks").select("id, status"),
   ]);
 
   const projects = (projectsRes.data ?? []).map((row) => {
-    const clientRow = row.project_clients?.[0];
-    const client = (clientRow?.client as Profile) ?? null;
+    const clientRow = (row.project_clients as unknown as { client: { id: string; name: string } | null }[] | null)?.[0];
+    const client = clientRow?.client ?? null;
     const { project_clients: _pc, ...rest } = row;
     return { ...rest, client } as Project & {
       client: { id: string; name: string } | null;
@@ -46,7 +47,7 @@ async function fetchDashboardData() {
 
   return {
     projects,
-    clientCount: clientsRes.data?.length ?? 0,
+    clientCount: clientsRes.count ?? 0,
     tasks: tasksRes.data ?? [],
   };
 }
@@ -57,53 +58,61 @@ export default function DashboardPage() {
     queryFn: fetchDashboardData,
   });
 
-  const activeProjects =
-    data?.projects.filter((p) => p.status === "progress").length ?? 0;
-  const completedTasks =
-    data?.tasks.filter((t) => t.status === "done").length ?? 0;
-  const totalTasks = data?.tasks.length ?? 0;
+  const { activeProjects, completedTasks, totalTasks, upcomingProjects } =
+    useMemo(() => {
+      const projects = data?.projects ?? [];
+      const tasks = data?.tasks ?? [];
+      return {
+        activeProjects: projects.filter((p) => p.status === "progress").length,
+        completedTasks: tasks.filter((t) => t.status === "done").length,
+        totalTasks: tasks.length,
+        upcomingProjects: projects
+          .filter(
+            (p) =>
+              p.due_date && p.status !== "done" && p.status !== "cancelled",
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.due_date!).getTime() -
+              new Date(b.due_date!).getTime(),
+          )
+          .slice(0, 5),
+      };
+    }, [data]);
 
-  const upcomingProjects =
-    data?.projects
-      .filter(
-        (p) => p.due_date && p.status !== "done" && p.status !== "cancelled",
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime(),
-      )
-      .slice(0, 5) ?? [];
-
-  const metrics = [
-    {
-      label: "Proyectos activos",
-      value: activeProjects,
-      icon: FolderKanban,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-    },
-    {
-      label: "Clientes",
-      value: data?.clientCount ?? 0,
-      icon: Users,
-      color: "text-violet-500",
-      bg: "bg-violet-500/10",
-    },
-    {
-      label: "Tareas completadas",
-      value: `${completedTasks}/${totalTasks}`,
-      icon: CheckSquare,
-      color: "text-green-500",
-      bg: "bg-green-500/10",
-    },
-    {
-      label: "Total proyectos",
-      value: data?.projects.length ?? 0,
-      icon: TrendingUp,
-      color: "text-orange-500",
-      bg: "bg-orange-500/10",
-    },
-  ];
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Proyectos activos",
+        value: activeProjects,
+        icon: FolderKanban,
+        color: "text-blue-500",
+        bg: "bg-blue-500/10",
+      },
+      {
+        label: "Clientes",
+        value: data?.clientCount ?? 0,
+        icon: Users,
+        color: "text-violet-500",
+        bg: "bg-violet-500/10",
+      },
+      {
+        label: "Tareas completadas",
+        value: `${completedTasks}/${totalTasks}`,
+        icon: CheckSquare,
+        color: "text-green-500",
+        bg: "bg-green-500/10",
+      },
+      {
+        label: "Total proyectos",
+        value: data?.projects.length ?? 0,
+        icon: TrendingUp,
+        color: "text-orange-500",
+        bg: "bg-orange-500/10",
+      },
+    ],
+    [activeProjects, completedTasks, totalTasks, data],
+  );
 
   if (isLoading) {
     return (

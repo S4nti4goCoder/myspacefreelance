@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { DollarSign, TrendingUp, FolderKanban, BarChart3 } from "lucide-react";
@@ -127,9 +128,17 @@ export default function ReportsPage() {
     totalCollected = 0,
     totalBudget = 0,
   } = data ?? {};
-  const collectedPercent =
-    totalBudget > 0 ? Math.round((totalCollected / totalBudget) * 100) : 0;
-  const projectsWithBudget = projects.filter((p) => p.budget && p.budget > 0);
+
+  const { collectedPercent, projectsWithBudget } = useMemo(
+    () => ({
+      collectedPercent:
+        totalBudget > 0
+          ? Math.round((totalCollected / totalBudget) * 100)
+          : 0,
+      projectsWithBudget: projects.filter((p) => p.budget && p.budget > 0),
+    }),
+    [projects, totalCollected, totalBudget],
+  );
 
   return (
     <div className="p-6 space-y-6">
