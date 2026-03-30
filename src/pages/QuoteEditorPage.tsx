@@ -213,6 +213,21 @@ export default function QuoteEditorPage() {
       toast.error("Agrega al menos un ítem a la cotización");
       return;
     }
+    const invalidItem = items.find(
+      (i) => i.description.trim() && (i.quantity < 1 || i.unit_price < 0),
+    );
+    if (invalidItem) {
+      toast.error("Revisa las cantidades y precios de los ítems");
+      return;
+    }
+    if (discountValue < 0) {
+      toast.error("El descuento no puede ser negativo");
+      return;
+    }
+    if (discountType === "percentage" && discountValue > 100) {
+      toast.error("El descuento no puede superar el 100%");
+      return;
+    }
 
     const baseData = {
       status,
@@ -642,6 +657,7 @@ export default function QuoteEditorPage() {
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   className="pl-9"
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -651,10 +667,12 @@ export default function QuoteEditorPage() {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
+                    type="email"
                     placeholder="email@ejemplo.com"
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     className="pl-9"
+                    maxLength={100}
                   />
                 </div>
               </div>
@@ -663,10 +681,12 @@ export default function QuoteEditorPage() {
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
+                    type="tel"
                     placeholder="+57 300 000 0000"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     className="pl-9"
+                    maxLength={20}
                   />
                 </div>
               </div>
@@ -784,7 +804,7 @@ export default function QuoteEditorPage() {
                         updateItem(
                           item.tempId,
                           "quantity",
-                          parseFloat(e.target.value) || 1,
+                          Math.max(1, parseFloat(e.target.value) || 1),
                         )
                       }
                       className="h-8 text-sm text-center"
@@ -799,7 +819,7 @@ export default function QuoteEditorPage() {
                         updateItem(
                           item.tempId,
                           "unit_price",
-                          parseFloat(e.target.value) || 0,
+                          Math.max(0, parseFloat(e.target.value) || 0),
                         )
                       }
                       className="h-8 text-sm text-right"
@@ -871,7 +891,7 @@ export default function QuoteEditorPage() {
                   min="0"
                   value={discountValue}
                   onChange={(e) =>
-                    setDiscountValue(parseFloat(e.target.value) || 0)
+                    setDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))
                   }
                   placeholder="0"
                 />
@@ -936,7 +956,7 @@ export default function QuoteEditorPage() {
                       type="number"
                       value={tax.rate}
                       onChange={(e) =>
-                        tax.setRate(parseFloat(e.target.value) || 0)
+                        tax.setRate(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))
                       }
                       className="w-20 h-8 text-sm text-right"
                       disabled={!tax.checked}

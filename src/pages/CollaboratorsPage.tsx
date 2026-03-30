@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -62,6 +63,10 @@ export default function CollaboratorsPage() {
 
   const handleCreate = () => {
     if (!name.trim() || !email.trim() || !password.trim()) return;
+    if (password.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
     createCollaborator.mutate(
       { name: name.trim(), email: email.trim(), password, phone: phone.trim() },
       { onSuccess: () => setIsCreateOpen(false) },
@@ -240,6 +245,7 @@ export default function CollaboratorsPage() {
                 placeholder="Juan Pérez"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
@@ -251,14 +257,17 @@ export default function CollaboratorsPage() {
                 placeholder="juan@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
               <Label>Teléfono</Label>
               <Input
+                type="tel"
                 placeholder="+57 300 000 0000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                maxLength={20}
               />
             </div>
             <div className="space-y-2">

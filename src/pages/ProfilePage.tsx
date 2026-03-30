@@ -234,8 +234,8 @@ export default function ProfilePage() {
       toast.error("Ingresa tu contraseña actual");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("La nueva contraseña debe tener al menos 6 caracteres");
+    if (newPassword.length < 8) {
+      toast.error("La nueva contraseña debe tener al menos 8 caracteres");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -323,6 +323,7 @@ export default function ProfilePage() {
                       onChange={(e) => setName(e.target.value)}
                       className="pl-9"
                       disabled={isSavingProfile}
+                      maxLength={100}
                     />
                   </div>
                 </div>
@@ -332,11 +333,13 @@ export default function ProfilePage() {
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="phone"
+                      type="tel"
                       placeholder="+57 300 000 0000"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="pl-9"
                       disabled={isSavingProfile}
+                      maxLength={20}
                     />
                   </div>
                 </div>

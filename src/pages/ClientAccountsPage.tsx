@@ -192,6 +192,10 @@ export default function ClientAccountsPage() {
       !createForm.password
     )
       return;
+    if (createForm.password.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
     registerClient.mutate(
       {
         name: createForm.name.trim(),
@@ -426,6 +430,7 @@ export default function ClientAccountsPage() {
                 onChange={(e) =>
                   setCreateForm((p) => ({ ...p, name: e.target.value }))
                 }
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
@@ -439,16 +444,19 @@ export default function ClientAccountsPage() {
                 onChange={(e) =>
                   setCreateForm((p) => ({ ...p, email: e.target.value }))
                 }
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
               <Label>Teléfono</Label>
               <Input
+                type="tel"
                 placeholder="+57 300 000 0000"
                 value={createForm.phone}
                 onChange={(e) =>
                   setCreateForm((p) => ({ ...p, phone: e.target.value }))
                 }
+                maxLength={20}
               />
             </div>
             <div className="space-y-2">
@@ -460,6 +468,7 @@ export default function ClientAccountsPage() {
                   setCreateForm((p) => ({ ...p, notes: e.target.value }))
                 }
                 rows={2}
+                maxLength={500}
               />
             </div>
             <div className="space-y-2">
@@ -528,6 +537,7 @@ export default function ClientAccountsPage() {
                 !createForm.name.trim() ||
                 !createForm.email.trim() ||
                 !createForm.password ||
+                createForm.password.length < 8 ||
                 registerClient.isPending
               }
             >

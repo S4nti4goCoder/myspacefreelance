@@ -128,10 +128,15 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
 
   const handleCreate = () => {
     if (!form.amount || !form.payment_date) return;
+    const amount = parseFloat(form.amount);
+    if (amount <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
     createPayment.mutate(
       {
         project_id: projectId,
-        amount: parseFloat(form.amount),
+        amount,
         payment_date: form.payment_date,
         method: form.method || null,
         notes: encodeNotes(form.concept, form.notes),
@@ -147,10 +152,15 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
 
   const handleUpdate = () => {
     if (!editingPayment || !form.amount || !form.payment_date) return;
+    const amount = parseFloat(form.amount);
+    if (amount <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
     updatePayment.mutate(
       {
         id: editingPayment.id,
-        amount: parseFloat(form.amount),
+        amount,
         payment_date: form.payment_date,
         method: form.method || null,
         notes: encodeNotes(form.concept, form.notes),
@@ -340,7 +350,7 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
                 <Input
                   type="number"
                   placeholder="0"
-                  min="0"
+                  min="1"
                   value={form.amount}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, amount: e.target.value }))
@@ -384,6 +394,7 @@ export default function PaymentsTab({ projectId }: PaymentsTabProps) {
                     setForm((p) => ({ ...p, notes: e.target.value }))
                   }
                   rows={2}
+                  maxLength={500}
                 />
               </div>
             </div>
