@@ -100,62 +100,19 @@ interface CreateCollaboratorInput {
 }
 
 async function createCollaborator(input: CreateCollaboratorInput) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("No autenticado");
-
-  const ownerId = session.user.id;
-
-  // Verificar duplicado
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", input.email.trim().toLowerCase())
-    .maybeSingle();
-
-  if (existing) {
-    throw new Error("Ya existe una cuenta con este correo electrónico");
-  }
-
-  // Crear usuario via función SQL — NO toca la sesión actual
-  const { data: newUserId, error: rpcError } = await supabase.rpc(
-    "create_collaborator_account",
+  const { data, error } = await supabase.rpc(
+    "create_collaborator_with_permissions",
     {
       p_email: input.email.trim().toLowerCase(),
       p_password: input.password,
       p_name: input.name,
       p_phone: input.phone ?? "",
+      p_modules: ALL_MODULES,
     },
   );
 
-  if (rpcError) throw rpcError;
-
-  // Crear registro en collaborators
-  const { data: collabData, error: collabError } = await supabase
-    .from("collaborators")
-    .insert({
-      collaborator_id: newUserId as string,
-      owner_id: ownerId,
-    })
-    .select()
-    .single();
-
-  if (collabError) throw collabError;
-
-  // Crear permisos por defecto
-  const { error: permError } = await supabase
-    .from("collaborator_permissions")
-    .insert(
-      DEFAULT_PERMISSIONS.map((p) => ({
-        ...p,
-        collaborator_id: collabData.id,
-      })),
-    );
-
-  if (permError) throw permError;
-
-  return collabData;
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 interface UpdatePermissionsInput {
