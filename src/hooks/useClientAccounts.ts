@@ -242,6 +242,7 @@ export function useDeleteClientAccount() {
       queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
       toast.success("Cliente eliminado");
     },
-    onError: () => toast.error("Error al eliminar cliente"),
+    onError: (error: Error) =>
+      toast.error(error.message || "Error al eliminar cliente"),
   });
 }

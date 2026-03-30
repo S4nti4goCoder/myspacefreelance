@@ -255,7 +255,7 @@ export default function ClientAccountsPage() {
     });
 
     if (error) {
-      toast.error("Error al restablecer la contraseña");
+      toast.error(error.message || "Error al restablecer la contraseña");
     } else {
       await supabase
         .from("profiles")
