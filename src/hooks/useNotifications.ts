@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -54,10 +54,15 @@ async function clearAllNotifications(userId: string) {
   if (error) throw error;
 }
 
+// Singleton: solo un canal realtime por usuario, compartido entre todas las instancias del hook
+const activeChannels = new Map<string, ReturnType<typeof supabase.channel>>();
+const subscriberCount = new Map<string, number>();
+
 export function useNotifications() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const userId = user?.id;
+  const channelKeyRef = useRef<string | null>(null);
 
   const query = useQuery({
     queryKey: ["notifications", userId],
@@ -65,59 +70,52 @@ export function useNotifications() {
     enabled: !!userId,
   });
 
-  // Realtime subscription
   useEffect(() => {
     if (!userId) return;
 
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-        },
-        (payload) => {
-          if (payload.new && (payload.new as { user_id: string }).user_id === userId) {
+    const key = `notifications:${userId}`;
+    channelKeyRef.current = key;
+    const count = subscriberCount.get(key) ?? 0;
+    subscriberCount.set(key, count + 1);
+
+    // Solo crear el canal si es el primer suscriptor
+    if (!activeChannels.has(key)) {
+      const channel = supabase
+        .channel(key)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+          },
+          () => {
             queryClient.invalidateQueries({
               queryKey: ["notifications", userId],
             });
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-        },
-        (payload) => {
-          if (payload.new && (payload.new as { user_id: string }).user_id === userId) {
-            queryClient.invalidateQueries({
-              queryKey: ["notifications", userId],
-            });
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "notifications",
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: ["notifications", userId],
-          });
-        },
-      )
-      .subscribe();
+          },
+        )
+        .subscribe();
+
+      activeChannels.set(key, channel);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      const currentKey = channelKeyRef.current;
+      if (!currentKey) return;
+
+      const remaining = (subscriberCount.get(currentKey) ?? 1) - 1;
+      subscriberCount.set(currentKey, remaining);
+
+      // Solo eliminar el canal si no quedan suscriptores
+      if (remaining <= 0) {
+        const channel = activeChannels.get(currentKey);
+        if (channel) {
+          supabase.removeChannel(channel);
+          activeChannels.delete(currentKey);
+        }
+        subscriberCount.delete(currentKey);
+      }
     };
   }, [userId, queryClient]);
 
