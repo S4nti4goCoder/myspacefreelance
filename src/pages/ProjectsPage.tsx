@@ -22,6 +22,8 @@ import {
   Copy,
   LayoutGrid,
   CalendarDays,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   useProjects,
@@ -93,6 +95,11 @@ export default function ProjectsPage() {
   const canDelete = useCanAccess("projects", "can_delete");
 
   const [viewMode, setViewMode] = useState<"grid" | "calendar">("grid");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchConfirm, setBatchConfirm] = useState<{
+    action: "archive" | "delete" | "status";
+    status?: string;
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -295,6 +302,45 @@ export default function ProjectsPage() {
       onSettled: () => setDeletingProject(null),
     });
   };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((p) => p.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBatchConfirm = () => {
+    if (!batchConfirm) return;
+    const ids = Array.from(selectedIds);
+
+    if (batchConfirm.action === "delete") {
+      ids.forEach((id) => deleteProject.mutate(id));
+    } else if (batchConfirm.action === "archive") {
+      ids.forEach((id) => updateProject.mutate({ id, status: "archived" }));
+    } else if (batchConfirm.action === "status" && batchConfirm.status) {
+      ids.forEach((id) =>
+        updateProject.mutate({ id, status: batchConfirm.status as Project["status"] }),
+      );
+    }
+
+    setSelectedIds(new Set());
+    setBatchConfirm(null);
+  };
+
+  const selectionMode = selectedIds.size > 0;
 
   return (
     <div className="p-6 space-y-6">
@@ -604,10 +650,26 @@ export default function ProjectsPage() {
             layout
           >
             <Card
-              className={`transition-colors group ${showArchived ? "opacity-75 hover:opacity-100" : "hover:border-primary/50"}`}
+              className={`transition-colors group ${showArchived ? "opacity-75 hover:opacity-100" : "hover:border-primary/50"} ${selectedIds.has(project.id) ? "ring-2 ring-primary" : ""}`}
             >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
+                  {canEdit && !showArchived && viewMode === "grid" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(project.id);
+                      }}
+                      className="shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
+                      aria-label={selectedIds.has(project.id) ? "Deseleccionar" : "Seleccionar"}
+                    >
+                      {selectedIds.has(project.id) ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground truncate">
                       {project.name}
@@ -759,6 +821,116 @@ export default function ProjectsPage() {
           </motion.div>
         ))}
       </div>}
+
+      {/* Batch action bar */}
+      <AnimatePresence>
+        {selectionMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card shadow-xl"
+          >
+            <div className="flex items-center gap-2">
+              <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-primary transition-colors">
+                {selectedIds.size === filtered.length ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+              </button>
+              <span className="text-sm font-medium text-foreground">
+                {selectedIds.size} seleccionado{selectedIds.size !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="h-5 w-px bg-border" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  Cambiar estado
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "todo" })}>
+                  Pendiente
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "progress" })}>
+                  En progreso
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "review" })}>
+                  En revisión
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "done" })}>
+                  Completado
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "cancelled" })}>
+                  Cancelado
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setBatchConfirm({ action: "archive" })}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Archivar
+            </Button>
+
+            <div className="h-5 w-px bg-border" />
+
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearSelection}>
+              <X className="h-3.5 w-3.5 mr-1" />
+              Cancelar
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Batch confirm dialog */}
+      <Dialog open={!!batchConfirm} onOpenChange={(open) => !open && setBatchConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {batchConfirm?.action === "delete" ? (
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              ) : batchConfirm?.action === "archive" ? (
+                <Archive className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ArrowUpDown className="h-5 w-5 text-muted-foreground" />
+              )}
+              {batchConfirm?.action === "delete"
+                ? "Eliminar proyectos"
+                : batchConfirm?.action === "archive"
+                  ? "Archivar proyectos"
+                  : "Cambiar estado"}
+            </DialogTitle>
+            <DialogDescription>
+              {batchConfirm?.action === "delete"
+                ? `¿Eliminar permanentemente ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`
+                : batchConfirm?.action === "archive"
+                  ? `¿Archivar ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""}?`
+                  : `¿Cambiar ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""} a "${statusLabels[batchConfirm?.status ?? ""]}"?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant={batchConfirm?.action === "delete" ? "destructive" : "default"}
+              onClick={handleBatchConfirm}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
