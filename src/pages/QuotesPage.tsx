@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,7 +16,7 @@ import {
   ChevronDown,
   Filter,
 } from "lucide-react";
-import { useQuotes, useUpdateQuote, useDeleteQuote } from "@/hooks/useQuotes";
+import { useQuotes, usePaginatedQuotes, useUpdateQuote, useDeleteQuote } from "@/hooks/useQuotes";
 import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatCOP, formatDate } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 import type { Quote } from "@/types";
 import {
   QUOTE_STATUS_LABELS as statusLabels,
@@ -65,7 +66,6 @@ function calculateTotal(quote: Quote): number {
 
 export default function QuotesPage() {
   usePageTitle("Cotizaciones");
-  const { data: quotes, isLoading } = useQuotes();
   const updateQuote = useUpdateQuote();
   const deleteQuote = useDeleteQuote();
   const navigate = useNavigate();
@@ -78,34 +78,30 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
   const [deletingQuote, setDeletingQuote] = useState<Quote | null>(null);
+  const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    let result = quotes ?? [];
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, showArchived]);
 
-    result = showArchived
-      ? result.filter((q) => q.status === "archived")
-      : result.filter((q) => q.status !== "archived");
+  const { data: paginatedData, isLoading } = usePaginatedQuotes({
+    search,
+    status: statusFilter as any,
+    showArchived,
+    page,
+  });
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (quote) =>
-          quote.quote_number.toLowerCase().includes(q) ||
-          quote.client_name.toLowerCase().includes(q) ||
-          quote.client_company?.toLowerCase().includes(q),
-      );
-    }
+  // For archived count badge
+  const { data: allQuotes } = useQuotes();
 
-    if (!showArchived && statusFilter !== "all") {
-      result = result.filter((q) => q.status === statusFilter);
-    }
-
-    return result;
-  }, [quotes, search, statusFilter, showArchived]);
+  const filtered = paginatedData?.quotes ?? [];
+  const totalPages = paginatedData?.totalPages ?? 1;
+  const totalItems = paginatedData?.total ?? 0;
+  const pageSize = paginatedData?.pageSize ?? 12;
 
   const archivedCount = useMemo(
-    () => quotes?.filter((q) => q.status === "archived").length ?? 0,
-    [quotes],
+    () => allQuotes?.filter((q) => q.status === "archived").length ?? 0,
+    [allQuotes],
   );
 
   const handleArchive = (quote: Quote) => {
@@ -136,7 +132,7 @@ export default function QuotesPage() {
             {showArchived ? "Cotizaciones archivadas" : "Cotizaciones"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {filtered.length} cotización{filtered.length !== 1 ? "es" : ""}
+            {totalItems} cotización{totalItems !== 1 ? "es" : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -447,6 +443,17 @@ export default function QuotesPage() {
           })}
         </AnimatePresence>
       </div>
+
+      {/* Pagination */}
+      {!isLoading && filtered.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
+      )}
 
       {/* Delete confirmation */}
       <Dialog

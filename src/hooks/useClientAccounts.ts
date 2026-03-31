@@ -1,7 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { Profile, ProjectClient } from "@/types";
+
+const PAGE_SIZE = 6;
+
+export interface ClientFilters {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
 
 async function fetchClientAccounts() {
   const { data, error } = await supabase
@@ -155,10 +163,48 @@ async function deleteClientAccount(id: string) {
   if (error) throw error;
 }
 
+async function fetchPaginatedClients(filters: ClientFilters) {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from("profiles")
+    .select("*", { count: "exact" })
+    .eq("role", "client");
+
+  if (filters.search?.trim()) {
+    const q = `%${filters.search.trim()}%`;
+    query = query.or(`name.ilike.${q},email.ilike.${q},phone.ilike.${q}`);
+  }
+
+  query = query.order("created_at", { ascending: false }).range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return {
+    clients: data as Profile[],
+    total: count ?? 0,
+    page,
+    pageSize,
+    totalPages: Math.ceil((count ?? 0) / pageSize),
+  };
+}
+
 export function useClientAccounts() {
   return useQuery({
     queryKey: ["client-accounts"],
     queryFn: fetchClientAccounts,
+  });
+}
+
+export function usePaginatedClients(filters: ClientFilters) {
+  return useQuery({
+    queryKey: ["client-accounts", "paginated", filters],
+    queryFn: () => fetchPaginatedClients(filters),
+    placeholderData: keepPreviousData,
   });
 }
 

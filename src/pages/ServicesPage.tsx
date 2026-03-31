@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   useServices,
+  usePaginatedServices,
   useCreateService,
   useUpdateService,
   useDeleteService,
@@ -33,6 +34,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatCOP } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 import type { Service } from "@/types";
 
 interface ServiceFormData {
@@ -51,7 +53,6 @@ const emptyForm: ServiceFormData = {
 
 export default function ServicesPage() {
   usePageTitle("Servicios");
-  const { data: services, isLoading } = useServices();
   const createService = useCreateService();
   const updateService = useUpdateService();
   const deleteService = useDeleteService();
@@ -61,30 +62,31 @@ export default function ServicesPage() {
   const canDelete = useCanAccess("services", "can_delete");
 
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [form, setForm] = useState<ServiceFormData>(emptyForm);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const { data: paginatedData, isLoading } = usePaginatedServices({ search, page });
+  const { data: allServices } = useServices();
+
+  const filtered = paginatedData?.services ?? [];
+  const totalPages = paginatedData?.totalPages ?? 1;
+  const totalItems = paginatedData?.total ?? 0;
+  const pageSize = paginatedData?.pageSize ?? 12;
+
   const categories = useMemo(() => {
-    if (!services) return [];
-    const cats = services
+    if (!allServices) return [];
+    const cats = allServices
       .map((s) => s.category)
       .filter((c): c is string => !!c);
     return [...new Set(cats)].sort();
-  }, [services]);
-
-  const filtered = useMemo(() => {
-    if (!services) return [];
-    if (!search.trim()) return services;
-    const q = search.toLowerCase();
-    return services.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.description?.toLowerCase().includes(q) ||
-        s.category?.toLowerCase().includes(q),
-    );
-  }, [services, search]);
+  }, [allServices]);
 
   const grouped = useMemo(() => {
     const withCategory = filtered.filter((s) => s.category);
@@ -220,8 +222,8 @@ export default function ServicesPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mis servicios</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {services?.length ?? 0} servicio
-            {(services?.length ?? 0) !== 1 ? "s" : ""} en tu catálogo
+            {totalItems} servicio
+            {totalItems !== 1 ? "s" : ""} en tu catálogo
           </p>
         </div>
         {canCreate && (
@@ -354,6 +356,17 @@ export default function ServicesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!isLoading && filtered.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
       )}
 
       {/* Create dialog */}

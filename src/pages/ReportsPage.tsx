@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatCOP, formatCOPShort, downloadCSV } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 import type { Payment } from "@/types";
 
 interface ProjectClient {
@@ -124,6 +125,9 @@ export default function ReportsPage() {
     totalBudget = 0,
   } = data ?? {};
 
+  const [breakdownPage, setBreakdownPage] = useState(1);
+  const BREAKDOWN_PAGE_SIZE = 6;
+
   const { collectedPercent, projectsWithBudget } = useMemo(
     () => ({
       collectedPercent:
@@ -133,6 +137,12 @@ export default function ReportsPage() {
       projectsWithBudget: projects.filter((p) => p.budget && p.budget > 0),
     }),
     [projects, totalCollected, totalBudget],
+  );
+
+  const breakdownTotalPages = Math.ceil(projectsWithBudget.length / BREAKDOWN_PAGE_SIZE);
+  const paginatedBreakdown = projectsWithBudget.slice(
+    (breakdownPage - 1) * BREAKDOWN_PAGE_SIZE,
+    breakdownPage * BREAKDOWN_PAGE_SIZE,
   );
 
   const handleExportProjects = () => {
@@ -400,7 +410,7 @@ export default function ReportsPage() {
                   <div className="col-span-2 text-right">Pendiente</div>
                   <div className="col-span-2 text-right">Estado</div>
                 </div>
-                {projectsWithBudget.map((project, i) => {
+                {paginatedBreakdown.map((project, i) => {
                   const collected = project.payments.reduce(
                     (sum, p) => sum + p.amount,
                     0,
@@ -456,12 +466,19 @@ export default function ReportsPage() {
                           {percent}% cobrado
                         </p>
                       </div>
-                      {i < projectsWithBudget.length - 1 && (
+                      {i < paginatedBreakdown.length - 1 && (
                         <div className="border-b border-border/50 pt-1" />
                       )}
                     </motion.div>
                   );
                 })}
+                <Pagination
+                  page={breakdownPage}
+                  totalPages={breakdownTotalPages}
+                  onPageChange={setBreakdownPage}
+                  totalItems={projectsWithBudget.length}
+                  pageSize={BREAKDOWN_PAGE_SIZE}
+                />
               </div>
             )}
           </CardContent>

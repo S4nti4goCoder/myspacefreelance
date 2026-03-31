@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -16,6 +16,7 @@ import {
   FileText,
   Pencil,
   KeyRound,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  useClientAccounts,
+  usePaginatedClients,
   useRegisterClient,
   useUpdateClientProfile,
   useDeleteClientAccount,
@@ -40,6 +41,7 @@ import {
   useAssignProjectToClient,
   useRemoveProjectFromClient,
 } from "@/hooks/useClientAccounts";
+import { Pagination } from "@/components/ui/pagination";
 import { useProjects } from "@/hooks/useProjects";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -132,10 +134,22 @@ function ClientProjectsManager({ client }: { client: Profile }) {
 
 export default function ClientAccountsPage() {
   usePageTitle("Clientes");
-  const { data: clients, isLoading } = useClientAccounts();
   const registerClient = useRegisterClient();
   const updateClient = useUpdateClientProfile();
   const deleteClient = useDeleteClientAccount();
+
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const { data: paginatedData, isLoading } = usePaginatedClients({ search, page });
+  const clients = paginatedData?.clients ?? [];
+  const totalPages = paginatedData?.totalPages ?? 1;
+  const totalItems = paginatedData?.total ?? 0;
+  const pageSize = paginatedData?.pageSize ?? 12;
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Profile | null>(null);
@@ -290,8 +304,8 @@ export default function ClientAccountsPage() {
             Cuentas de clientes
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {clients?.length ?? 0} cliente{clients?.length !== 1 ? "s" : ""}{" "}
-            registrado{clients?.length !== 1 ? "s" : ""}
+            {totalItems} cliente{totalItems !== 1 ? "s" : ""}{" "}
+            registrado{totalItems !== 1 ? "s" : ""}
           </p>
         </div>
         <Button onClick={handleOpenCreate}>
@@ -299,6 +313,25 @@ export default function ClientAccountsPage() {
           Registrar cliente
         </Button>
       </motion.div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre, email o teléfono..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 pr-9"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       {/* Loading */}
       {isLoading && (
@@ -310,7 +343,7 @@ export default function ClientAccountsPage() {
       )}
 
       {/* Empty state */}
-      {!isLoading && clients?.length === 0 && (
+      {!isLoading && clients.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -331,7 +364,7 @@ export default function ClientAccountsPage() {
 
       {/* Clients grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clients?.map((client, i) => (
+        {clients.map((client, i) => (
           <motion.div
             key={client.id}
             initial={{ opacity: 0, y: 20 }}
@@ -418,6 +451,17 @@ export default function ClientAccountsPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {!isLoading && clients.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
+      )}
 
       {/* Create dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

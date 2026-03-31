@@ -1,7 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type { Project, Profile, Task } from "@/types";
+import type { Project, Profile, Task, ProjectStatus } from "@/types";
+
+const PAGE_SIZE = 6;
+
+export interface ProjectFilters {
+  search?: string;
+  status?: ProjectStatus | "all";
+  clientId?: string | "all";
+  sortBy?: string;
+  showArchived?: boolean;
+  page?: number;
+  pageSize?: number;
+}
 
 interface CreateProjectInput {
   name: string;
@@ -33,25 +45,98 @@ interface DuplicateProjectInput {
   taskIds: string[];
 }
 
-async function fetchProjects() {
-  const { data, error } = await supabase
-    .from("projects")
-    .select(
-      `*,
-      project_clients!left(
-        client:profiles(id, name, email, phone, notes, role, password_changed, created_at)
-      )`,
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-
-  return (data ?? []).map((row) => {
+function mapProjectRows(data: unknown[]) {
+  return (data ?? []).map((row: any) => {
     const clientRow = row.project_clients?.[0];
     const client = (clientRow?.client as Profile) ?? null;
     const { project_clients: _pc, ...rest } = row;
     return { ...rest, client } as Project & { client: Profile | null };
   });
+}
+
+const projectSelect = `*,
+  project_clients!left(
+    client:profiles(id, name, email, phone, notes, role, password_changed, created_at)
+  )`;
+
+async function fetchProjects() {
+  const { data, error } = await supabase
+    .from("projects")
+    .select(projectSelect)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return mapProjectRows(data);
+}
+
+async function fetchPaginatedProjects(filters: ProjectFilters) {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from("projects")
+    .select(projectSelect, { count: "exact" });
+
+  // Filter archived vs active
+  if (filters.showArchived) {
+    query = query.eq("status", "archived");
+  } else {
+    query = query.neq("status", "archived");
+
+    if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
+  }
+
+  // Search
+  if (filters.search?.trim()) {
+    const q = `%${filters.search.trim()}%`;
+    query = query.or(`name.ilike.${q},description.ilike.${q}`);
+  }
+
+  // Sort
+  switch (filters.sortBy) {
+    case "created_asc":
+      query = query.order("created_at", { ascending: true });
+      break;
+    case "due_asc":
+      query = query.order("due_date", { ascending: true, nullsFirst: false });
+      break;
+    case "due_desc":
+      query = query.order("due_date", { ascending: false, nullsFirst: false });
+      break;
+    case "name_asc":
+      query = query.order("name", { ascending: true });
+      break;
+    case "progress_desc":
+      query = query.order("progress", { ascending: false });
+      break;
+    default:
+      query = query.order("created_at", { ascending: false });
+  }
+
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  const projects = mapProjectRows(data);
+
+  // Client-side filter by clientId (join table makes server-side filtering complex)
+  let filtered = projects;
+  if (filters.clientId && filters.clientId !== "all") {
+    filtered = projects.filter((p) => p.client?.id === filters.clientId);
+  }
+
+  return {
+    projects: filtered,
+    total: count ?? 0,
+    page,
+    pageSize,
+    totalPages: Math.ceil((count ?? 0) / pageSize),
+  };
 }
 
 async function fetchProject(id: string) {
@@ -204,6 +289,14 @@ export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
+  });
+}
+
+export function usePaginatedProjects(filters: ProjectFilters) {
+  return useQuery({
+    queryKey: ["projects", "paginated", filters],
+    queryFn: () => fetchPaginatedProjects(filters),
+    placeholderData: keepPreviousData,
   });
 }
 

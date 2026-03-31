@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import {
   useProjects,
+  usePaginatedProjects,
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
@@ -63,6 +64,7 @@ import {
 } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import ProjectCalendar from "@/components/shared/ProjectCalendar";
+import { Pagination } from "@/components/ui/pagination";
 import type { Project, Task } from "@/types";
 
 type SortOption =
@@ -84,7 +86,6 @@ const sortLabels: Record<SortOption, string> = {
 
 export default function ProjectsPage() {
   usePageTitle("Proyectos");
-  const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -95,6 +96,7 @@ export default function ProjectsPage() {
   const canDelete = useCanAccess("projects", "can_delete");
 
   const [viewMode, setViewMode] = useState<"grid" | "calendar">("grid");
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchConfirm, setBatchConfirm] = useState<{
     action: "archive" | "delete" | "status";
@@ -178,10 +180,33 @@ export default function ProjectsPage() {
     );
   };
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, clientFilter, sortBy, showArchived]);
+
+  // Paginated query for grid view
+  const { data: paginatedData, isLoading } = usePaginatedProjects({
+    search,
+    status: statusFilter as any,
+    clientId: clientFilter,
+    sortBy,
+    showArchived,
+    page,
+  });
+
+  // Full query only for calendar view
+  const { data: allProjects } = useProjects();
+
+  const filtered = paginatedData?.projects ?? [];
+  const totalPages = paginatedData?.totalPages ?? 1;
+  const totalItems = paginatedData?.total ?? 0;
+  const pageSize = paginatedData?.pageSize ?? 12;
+
   const clientOptions = useMemo(() => {
-    if (!projects) return [];
+    if (!allProjects) return [];
     const seen = new Set<string>();
-    return projects
+    return allProjects
       .filter(
         (p) =>
           p.status !== "archived" &&
@@ -190,7 +215,7 @@ export default function ProjectsPage() {
           seen.add(p.client.id),
       )
       .map((p) => ({ id: p.client!.id, name: p.client!.name }));
-  }, [projects]);
+  }, [allProjects]);
 
   const activeFiltersCount = [
     statusFilter !== "all",
@@ -205,71 +230,9 @@ export default function ProjectsPage() {
     setSortBy("created_desc");
   };
 
-  const filtered = useMemo(() => {
-    let result = projects ?? [];
-
-    result = showArchived
-      ? result.filter((p) => p.status === "archived")
-      : result.filter((p) => p.status !== "archived");
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q) ||
-          p.tags?.some((t) => t.toLowerCase().includes(q)) ||
-          p.client?.name.toLowerCase().includes(q),
-      );
-    }
-
-    if (!showArchived && statusFilter !== "all") {
-      result = result.filter((p) => p.status === statusFilter);
-    }
-
-    if (clientFilter !== "all") {
-      result = result.filter((p) => p.client?.id === clientFilter);
-    }
-
-    result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case "created_asc":
-          return (
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        case "created_desc":
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        case "due_asc": {
-          if (!a.due_date) return 1;
-          if (!b.due_date) return -1;
-          return (
-            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-          );
-        }
-        case "due_desc": {
-          if (!a.due_date) return 1;
-          if (!b.due_date) return -1;
-          return (
-            new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
-          );
-        }
-        case "name_asc":
-          return a.name.localeCompare(b.name);
-        case "progress_desc":
-          return b.progress - a.progress;
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [projects, search, statusFilter, clientFilter, sortBy, showArchived]);
-
   const archivedCount = useMemo(
-    () => projects?.filter((p) => p.status === "archived").length ?? 0,
-    [projects],
+    () => allProjects?.filter((p) => p.status === "archived").length ?? 0,
+    [allProjects],
   );
 
   const handleCreate = (data: ProjectFormData) => {
@@ -355,12 +318,8 @@ export default function ProjectsPage() {
             {showArchived ? "Proyectos archivados" : "Proyectos"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {filtered.length} de{" "}
-            {showArchived
-              ? archivedCount
-              : (projects?.filter((p) => p.status !== "archived").length ??
-                0)}{" "}
-            proyecto{filtered.length !== 1 ? "s" : ""}
+            {totalItems}{" "}
+            proyecto{totalItems !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -636,7 +595,7 @@ export default function ProjectsPage() {
 
       {/* Calendar view */}
       {viewMode === "calendar" && !showArchived && !isLoading && (
-        <ProjectCalendar projects={filtered} />
+        <ProjectCalendar projects={(allProjects ?? []).filter((p) => p.status !== "archived")} />
       )}
 
       {/* Projects grid */}
@@ -821,6 +780,17 @@ export default function ProjectsPage() {
           </motion.div>
         ))}
       </div>}
+
+      {/* Pagination */}
+      {(viewMode === "grid" || showArchived) && !isLoading && filtered.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
+      )}
 
       {/* Batch action bar */}
       <AnimatePresence>

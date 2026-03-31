@@ -1,7 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type { Quote, QuoteItem } from "@/types";
+import type { Quote, QuoteItem, QuoteStatus } from "@/types";
+
+const PAGE_SIZE = 6;
+
+export interface QuoteFilters {
+  search?: string;
+  status?: QuoteStatus | "all";
+  showArchived?: boolean;
+  page?: number;
+  pageSize?: number;
+}
 
 async function fetchQuotes() {
   const { data, error } = await supabase
@@ -99,10 +109,56 @@ async function deleteQuote(id: string) {
   if (error) throw error;
 }
 
+async function fetchPaginatedQuotes(filters: QuoteFilters) {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from("quotes")
+    .select("*, items:quote_items(*)", { count: "exact" });
+
+  if (filters.showArchived) {
+    query = query.eq("status", "archived");
+  } else {
+    query = query.neq("status", "archived");
+    if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
+  }
+
+  if (filters.search?.trim()) {
+    const q = `%${filters.search.trim()}%`;
+    query = query.or(`quote_number.ilike.${q},client_name.ilike.${q},notes.ilike.${q}`);
+  }
+
+  query = query.order("created_at", { ascending: false }).range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return {
+    quotes: data as Quote[],
+    total: count ?? 0,
+    page,
+    pageSize,
+    totalPages: Math.ceil((count ?? 0) / pageSize),
+  };
+}
+
 export function useQuotes() {
   return useQuery({
     queryKey: ["quotes"],
     queryFn: fetchQuotes,
+  });
+}
+
+export function usePaginatedQuotes(filters: QuoteFilters) {
+  return useQuery({
+    queryKey: ["quotes", "paginated", filters],
+    queryFn: () => fetchPaginatedQuotes(filters),
+    placeholderData: keepPreviousData,
   });
 }
 
