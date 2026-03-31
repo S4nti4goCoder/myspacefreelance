@@ -154,6 +154,3 @@ npm run preview   # Preview del build
 npm run lint      # Lint con ESLint
 ```
 
-## Licencia
-
-Proyecto privado.
