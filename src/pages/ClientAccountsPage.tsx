@@ -349,7 +349,7 @@ export default function ClientAccountsPage() {
                       <p className="font-semibold text-foreground truncate">
                         {client.name}
                       </p>
-                      <Badge variant="secondary" className="text-xs mt-0.5">
+                      <Badge variant="teal" className="text-xs mt-0.5">
                         Cliente
                       </Badge>
                     </div>

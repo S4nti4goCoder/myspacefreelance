@@ -169,7 +169,7 @@ export default function CollaboratorsPage() {
                         <p className="font-semibold text-foreground truncate">
                           {collab.profile?.name ?? "Sin nombre"}
                         </p>
-                        <Badge variant="secondary" className="text-xs shrink-0">
+                        <Badge variant="purple" className="text-xs shrink-0">
                           Colaborador
                         </Badge>
                       </div>

@@ -1,7 +1,16 @@
 import type { TaskStatus } from "@/types";
 
 // ─── Badge variant type ─────────────────────────────────────────────────────
-export type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
+export type BadgeVariant =
+  | "default"
+  | "secondary"
+  | "outline"
+  | "destructive"
+  | "success"
+  | "warning"
+  | "info"
+  | "purple"
+  | "teal";
 
 // ─── Project status ─────────────────────────────────────────────────────────
 export const PROJECT_STATUS_LABELS: Record<string, string> = {
@@ -15,11 +24,11 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
 
 export const PROJECT_STATUS_VARIANTS: Record<string, BadgeVariant> = {
   todo: "secondary",
-  progress: "default",
-  review: "outline",
-  done: "default",
+  progress: "info",
+  review: "warning",
+  done: "success",
   cancelled: "destructive",
-  archived: "secondary",
+  archived: "outline",
 };
 
 export const PROJECT_STATUS_COLORS: Record<string, string> = {
@@ -58,10 +67,10 @@ export const QUOTE_STATUS_LABELS: Record<string, string> = {
 
 export const QUOTE_STATUS_VARIANTS: Record<string, BadgeVariant> = {
   draft: "secondary",
-  sent: "default",
-  accepted: "default",
+  sent: "info",
+  accepted: "success",
   rejected: "destructive",
-  archived: "secondary",
+  archived: "outline",
 };
 
 export const QUOTE_STATUS_COLORS: Record<string, string> = {

@@ -44,7 +44,7 @@ const navItems: NavItem[] = [
   },
   {
     to: "/cuentas-clientes",
-    label: "Cuentas",
+    label: "Clientes",
     icon: UserCog,
     end: false,
     module: "clients",
