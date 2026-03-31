@@ -96,7 +96,7 @@ export default function LoginPage() {
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="text-center">
             <CardTitle>Iniciar sesión</CardTitle>
             <CardDescription>
               Ingresa tus credenciales para continuar
