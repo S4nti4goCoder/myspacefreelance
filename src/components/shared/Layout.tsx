@@ -21,6 +21,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import NotificationCenter from "@/components/shared/NotificationCenter";
 import { cn } from "@/lib/utils";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
 import type { CollaboratorModule } from "@/types";
@@ -136,14 +137,17 @@ export default function Layout({ children }: LayoutProps) {
               MySpaceFreelance
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationCenter collapsed />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir menú"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>
@@ -253,6 +257,8 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
             </span>
           </div>
         )}
+
+        <NotificationCenter />
 
         <ThemeToggle showLabel />
 

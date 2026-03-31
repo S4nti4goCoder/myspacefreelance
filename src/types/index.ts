@@ -190,6 +190,25 @@ export interface Collaborator {
   projects?: Project[];
 }
 
+export type NotificationType =
+  | "comment"
+  | "payment"
+  | "task"
+  | "project"
+  | "quote"
+  | "system";
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read: boolean;
+  project_id: string | null;
+  created_at: string;
+}
+
 // Mapa de permisos indexado por módulo para acceso rápido
 export type PermissionsMap = Partial<
   Record<CollaboratorModule, CollaboratorPermission>
