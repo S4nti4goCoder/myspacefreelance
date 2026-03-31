@@ -7,6 +7,8 @@ import {
   Save,
   CheckSquare,
   Square,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +18,7 @@ import {
   ALL_MODULES,
 } from "@/hooks/useCollaborators";
 import { useProjects } from "@/hooks/useProjects";
-import type {
-  Collaborator,
-  CollaboratorModule,
-  CollaboratorPermission,
-} from "@/types";
+import type { Collaborator, CollaboratorModule } from "@/types";
 
 interface CollaboratorPermissionsPageProps {
   collaborator: Collaborator;
@@ -35,11 +33,28 @@ const MODULE_LABELS: Record<CollaboratorModule, string> = {
   attachments: "Adjuntos",
   payments: "Pagos",
   quotes: "Cotizaciones",
-  services: "Servicios",
+  services: "Mis servicios",
   clients: "Cuentas de clientes",
   comments: "Comentarios",
   reports: "Reportes",
 };
+
+// Secciones agrupadas para la UI
+interface PermissionSection {
+  label: string;
+  modules: CollaboratorModule[];
+}
+
+const PERMISSION_SECTIONS: PermissionSection[] = [
+  {
+    label: "Proyectos",
+    modules: ["projects", "tasks", "documents", "attachments", "payments", "comments"],
+  },
+  { label: "Cotizaciones", modules: ["quotes"] },
+  { label: "Mis servicios", modules: ["services"] },
+  { label: "Cuentas de clientes", modules: ["clients"] },
+  { label: "Reportes", modules: ["reports"] },
+];
 
 // Módulos que no tienen acción create/edit/delete (solo ver)
 const VIEW_ONLY_MODULES: CollaboratorModule[] = ["reports"];
@@ -85,6 +100,9 @@ export default function CollaboratorPermissionsPage({
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() =>
     buildInitialProjectIds(collaborator),
   );
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
 
   // Re-inicializar si cambia el colaborador
   useEffect(() => {
@@ -111,6 +129,35 @@ export default function CollaboratorPermissionsPage({
           updated.can_view = true;
         }
         return updated;
+      }),
+    );
+  };
+
+  const handleToggleSection = (section: PermissionSection) => {
+    const sectionRows = permissions.filter((r) =>
+      section.modules.includes(r.module),
+    );
+    const allEnabled = sectionRows.every((r) => r.can_view);
+
+    setPermissions((prev) =>
+      prev.map((row) => {
+        if (!section.modules.includes(row.module)) return row;
+        if (allEnabled) {
+          return {
+            ...row,
+            can_view: false,
+            can_create: false,
+            can_edit: false,
+            can_delete: false,
+          };
+        }
+        return {
+          ...row,
+          can_view: true,
+          can_create: VIEW_ONLY_MODULES.includes(row.module) ? false : true,
+          can_edit: VIEW_ONLY_MODULES.includes(row.module) ? false : true,
+          can_delete: VIEW_ONLY_MODULES.includes(row.module) ? false : true,
+        };
       }),
     );
   };
@@ -176,10 +223,26 @@ export default function CollaboratorPermissionsPage({
     });
   };
 
+  const toggleCollapse = (label: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
   const isSaving = updatePermissions.isPending || updateProjects.isPending;
   const activeProjects = (allProjects ?? []).filter(
     (p) => p.status !== "archived",
   );
+
+  const getPermissionRow = (module: CollaboratorModule) =>
+    permissions.find((r) => r.module === module)!;
+
+  const getSectionStatus = (section: PermissionSection) => {
+    const rows = section.modules.map(getPermissionRow);
+    const total = rows.length;
+    const active = rows.filter((r) => r.can_view).length;
+    if (active === 0) return "none";
+    if (active === total) return "all";
+    return "partial";
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -227,7 +290,7 @@ export default function CollaboratorPermissionsPage({
         </div>
       </motion.div>
 
-      {/* Permissions matrix */}
+      {/* Permissions by sections */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -262,63 +325,151 @@ export default function CollaboratorPermissionsPage({
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {/* Table header */}
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b border-border mb-1">
-              <div className="col-span-4">Módulo</div>
-              <div className="col-span-2 text-center">Ver</div>
-              <div className="col-span-2 text-center">Crear</div>
-              <div className="col-span-2 text-center">Editar</div>
-              <div className="col-span-2 text-center">Eliminar</div>
-            </div>
+          <CardContent className="space-y-2">
+            {PERMISSION_SECTIONS.map((section) => {
+              const isCollapsed = collapsedSections[section.label] ?? false;
+              const status = getSectionStatus(section);
+              const isMultiModule = section.modules.length > 1;
 
-            {/* Table rows */}
-            <div className="divide-y divide-border">
-              {permissions.map((row, i) => {
-                const isViewOnly = VIEW_ONLY_MODULES.includes(row.module);
-                return (
-                  <motion.div
-                    key={row.module}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-12 gap-2 items-center py-3"
+              return (
+                <div
+                  key={section.label}
+                  className="border border-border rounded-lg overflow-hidden"
+                >
+                  {/* Section header */}
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none transition-colors ${
+                      status === "all"
+                        ? "bg-primary/5"
+                        : status === "partial"
+                          ? "bg-accent/50"
+                          : "bg-muted/30"
+                    }`}
+                    onClick={() =>
+                      isMultiModule
+                        ? toggleCollapse(section.label)
+                        : handleToggleSection(section)
+                    }
                   >
-                    <div className="col-span-4">
-                      <p className="text-sm font-medium text-foreground">
-                        {MODULE_LABELS[row.module]}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      {isMultiModule && (
+                        <span className="text-muted-foreground">
+                          {isCollapsed ? (
+                            <ChevronRight className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                      <span className="text-sm font-semibold text-foreground">
+                        {section.label}
+                      </span>
+                      {isMultiModule && (
+                        <span className="text-xs text-muted-foreground">
+                          {section.modules.length} sub-módulos
+                        </span>
+                      )}
                     </div>
-                    {(
-                      [
-                        "can_view",
-                        "can_create",
-                        "can_edit",
-                        "can_delete",
-                      ] as PermissionAction[]
-                    ).map((action) => {
-                      const disabled = isViewOnly && action !== "can_view";
-                      return (
-                        <div
-                          key={action}
-                          className="col-span-2 flex justify-center"
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          status === "all"
+                            ? "bg-primary/10 text-primary"
+                            : status === "partial"
+                              ? "bg-orange-500/10 text-orange-500"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {status === "all"
+                          ? "Acceso completo"
+                          : status === "partial"
+                            ? "Acceso parcial"
+                            : "Sin acceso"}
+                      </span>
+                      {isMultiModule && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSection(section);
+                          }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={row[action]}
-                            onChange={() =>
-                              !disabled && handleToggle(row.module, action)
-                            }
-                            disabled={disabled}
-                            className="h-4 w-4 rounded accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
-                          />
+                          {status === "all"
+                            ? "Desactivar todo"
+                            : "Activar todo"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section content — permission rows */}
+                  {!isCollapsed && (
+                    <div className="px-4">
+                      {/* Column headers */}
+                      <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pt-3 pb-2 border-b border-border">
+                        <div className={isMultiModule ? "col-span-4 pl-4" : "col-span-4"}>
+                          {isMultiModule ? "Sub-módulo" : "Módulo"}
                         </div>
-                      );
-                    })}
-                  </motion.div>
-                );
-              })}
-            </div>
+                        <div className="col-span-2 text-center">Ver</div>
+                        <div className="col-span-2 text-center">Crear</div>
+                        <div className="col-span-2 text-center">Editar</div>
+                        <div className="col-span-2 text-center">Eliminar</div>
+                      </div>
+
+                      {/* Rows */}
+                      <div className="divide-y divide-border">
+                        {section.modules.map((mod) => {
+                          const row = getPermissionRow(mod);
+                          const isViewOnly = VIEW_ONLY_MODULES.includes(mod);
+                          return (
+                            <div
+                              key={mod}
+                              className="grid grid-cols-12 gap-2 items-center py-3"
+                            >
+                              <div className={isMultiModule ? "col-span-4 pl-4" : "col-span-4"}>
+                                <p className="text-sm text-foreground">
+                                  {MODULE_LABELS[mod]}
+                                </p>
+                              </div>
+                              {(
+                                [
+                                  "can_view",
+                                  "can_create",
+                                  "can_edit",
+                                  "can_delete",
+                                ] as PermissionAction[]
+                              ).map((action) => {
+                                const disabled =
+                                  isViewOnly && action !== "can_view";
+                                return (
+                                  <div
+                                    key={action}
+                                    className="col-span-2 flex justify-center"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={row[action]}
+                                      onChange={() =>
+                                        !disabled &&
+                                        handleToggle(row.module, action)
+                                      }
+                                      disabled={disabled}
+                                      className="h-4 w-4 rounded accent-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </motion.div>
