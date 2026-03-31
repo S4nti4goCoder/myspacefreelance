@@ -20,6 +20,8 @@ import {
   Archive,
   ArchiveRestore,
   Copy,
+  LayoutGrid,
+  CalendarDays,
 } from "lucide-react";
 import {
   useProjects,
@@ -58,6 +60,7 @@ import {
   PROJECT_STATUS_COLORS as statusColors,
 } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
+import ProjectCalendar from "@/components/shared/ProjectCalendar";
 import type { Project, Task } from "@/types";
 
 type SortOption =
@@ -89,6 +92,7 @@ export default function ProjectsPage() {
   const canEdit = useCanAccess("projects", "can_edit");
   const canDelete = useCanAccess("projects", "can_delete");
 
+  const [viewMode, setViewMode] = useState<"grid" | "calendar">("grid");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -314,6 +318,28 @@ export default function ProjectsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {!showArchived && (
+            <div className="flex border border-border rounded-lg overflow-hidden">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setViewMode("grid")}
+                title="Vista cuadrícula"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "calendar" ? "default" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setViewMode("calendar")}
+                title="Vista calendario"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <Button
             variant="outline"
             onClick={() => {
@@ -562,8 +588,13 @@ export default function ProjectsPage() {
         </motion.div>
       )}
 
+      {/* Calendar view */}
+      {viewMode === "calendar" && !showArchived && !isLoading && (
+        <ProjectCalendar projects={filtered} />
+      )}
+
       {/* Projects grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {(viewMode === "grid" || showArchived) && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((project, i) => (
           <motion.div
             key={project.id}
@@ -727,7 +758,7 @@ export default function ProjectsPage() {
             </Card>
           </motion.div>
         ))}
-      </div>
+      </div>}
 
       {/* Create dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
