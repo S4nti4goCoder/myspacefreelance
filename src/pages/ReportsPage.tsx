@@ -2,8 +2,15 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { DollarSign, TrendingUp, FolderKanban, BarChart3 } from "lucide-react";
+import {
+  DollarSign,
+  TrendingUp,
+  FolderKanban,
+  BarChart3,
+  Download,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +23,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { formatCOP, formatCOPShort } from "@/lib/utils";
+import { formatCOP, formatCOPShort, downloadCSV } from "@/lib/utils";
 import type { Payment } from "@/types";
 
 interface ProjectClient {
@@ -128,6 +135,49 @@ export default function ReportsPage() {
     [projects, totalCollected, totalBudget],
   );
 
+  const handleExportProjects = () => {
+    const headers = ["Proyecto", "Cliente", "Estado", "Presupuesto", "Cobrado", "Pendiente", "% Cobrado"];
+    const rows = projectsWithBudget.map((p) => {
+      const collected = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+      const pending = Math.max(0, (p.budget ?? 0) - collected);
+      const percent = p.budget && p.budget > 0 ? Math.round((collected / p.budget) * 100) : 0;
+      return [
+        p.name,
+        p.client?.name ?? "",
+        statusLabels[p.status] ?? p.status,
+        String(p.budget ?? 0),
+        String(collected),
+        String(pending),
+        `${percent}%`,
+      ];
+    });
+    downloadCSV("reporte-proyectos.csv", headers, rows);
+  };
+
+  const handleExportPayments = () => {
+    const allPayments = projects.flatMap((p) =>
+      p.payments.map((pay) => ({
+        proyecto: p.name,
+        cliente: p.client?.name ?? "",
+        monto: pay.amount,
+        fecha: pay.payment_date,
+        metodo: pay.method ?? "",
+        notas: pay.notes ?? "",
+      })),
+    );
+    allPayments.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const headers = ["Fecha", "Proyecto", "Cliente", "Monto", "Método", "Notas"];
+    const rows = allPayments.map((p) => [
+      p.fecha,
+      p.proyecto,
+      p.cliente,
+      String(p.monto),
+      p.metodo,
+      p.notas,
+    ]);
+    downloadCSV("reporte-pagos.csv", headers, rows);
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -147,11 +197,36 @@ export default function ReportsPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-start justify-between gap-4"
       >
-        <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Resumen financiero de tus proyectos
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Resumen financiero de tus proyectos
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportProjects}
+            disabled={projectsWithBudget.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar proyectos
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPayments}
+            disabled={projects.flatMap((p) => p.payments).length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar pagos
+          </Button>
+        </div>
       </motion.div>
 
       {/* Summary cards */}
