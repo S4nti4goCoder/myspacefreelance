@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, Pencil, FolderPlus } from "lucide-react";
@@ -13,6 +14,7 @@ const ACCENT_BLUE = "#1B2A4A";
 const ACCENT_RED = "#E63946";
 
 export default function QuoteViewPage() {
+  usePageTitle("Cotización");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
