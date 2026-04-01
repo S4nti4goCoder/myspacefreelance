@@ -272,6 +272,21 @@ function SidebarContent({ onLogout, onClose }: SidebarContentProps) {
           <span className="text-sm">Cerrar sesión</span>
         </Button>
       </div>
+
+      <div className="px-4 py-3 text-center">
+        <p className="text-[11px] text-muted-foreground/60">
+          Desarrollado por{" "}
+          <a
+            href="https://github.com/S4nti4goCoder"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-muted-foreground transition-colors"
+          >
+            @S4nti4goCoder
+          </a>{" "}
+          ❤️
+        </p>
+      </div>
     </div>
   );
 }
