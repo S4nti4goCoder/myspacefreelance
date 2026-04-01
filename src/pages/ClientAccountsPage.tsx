@@ -68,8 +68,8 @@ function ClientProjectsManager({ client }: { client: Profile }) {
     allProjects?.filter((p) => !assignedProjectIds.includes(p.id)) ?? [];
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">
+    <div className="space-y-3 min-w-0 overflow-hidden">
+      <p className="text-sm font-medium text-foreground truncate">
         Proyectos asignados a {client.name}
       </p>
 
@@ -85,9 +85,9 @@ function ClientProjectsManager({ client }: { client: Profile }) {
             key={cp.id}
             className="flex items-center justify-between p-2 bg-muted rounded-lg"
           >
-            <div className="flex items-center gap-2">
-              <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <FolderKanban className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-sm truncate">
                 {(cp.project as { name: string })?.name ?? "Proyecto"}
               </span>
             </div>
@@ -114,7 +114,7 @@ function ClientProjectsManager({ client }: { client: Profile }) {
                 key={project.id}
                 variant="outline"
                 size="sm"
-                className="w-full justify-start gap-2 h-8"
+                className="w-full justify-start gap-2 h-8 overflow-hidden"
                 onClick={() =>
                   assignProject.mutate({
                     projectId: project.id,
@@ -123,8 +123,8 @@ function ClientProjectsManager({ client }: { client: Profile }) {
                 }
                 disabled={assignProject.isPending}
               >
-                <Plus className="h-3.5 w-3.5" />
-                {project.name}
+                <Plus className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{project.name}</span>
               </Button>
             ))}
           </div>
@@ -765,7 +765,7 @@ export default function ClientAccountsPage() {
         open={!!managingClient}
         onOpenChange={(open) => !open && setManagingClient(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md overflow-hidden">
           <DialogHeader>
             <DialogTitle>Gestionar proyectos</DialogTitle>
           </DialogHeader>
