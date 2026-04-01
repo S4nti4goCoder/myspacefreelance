@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   FolderKanban,
-  Users,
   CheckSquare,
   DollarSign,
   Clock,
@@ -12,7 +11,6 @@ import {
   CreditCard,
   MessageSquare,
   CircleCheck,
-  Plus,
   ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";

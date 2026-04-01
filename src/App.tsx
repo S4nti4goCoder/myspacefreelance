@@ -22,6 +22,8 @@ const QuotesPage = lazy(() => import("@/pages/QuotesPage"));
 const QuoteEditorPage = lazy(() => import("@/pages/QuoteEditorPage"));
 const QuoteViewPage = lazy(() => import("@/pages/QuoteViewPage"));
 const CollaboratorsPage = lazy(() => import("@/pages/CollaboratorsPage"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
+const TermsPage = lazy(() => import("@/pages/TermsPage"));
 
 function LoadingScreen() {
   return (
@@ -145,6 +147,8 @@ export default function App() {
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacidad" element={<PrivacyPolicyPage />} />
+        <Route path="/terminos" element={<TermsPage />} />
 
         <Route
           path="/*"

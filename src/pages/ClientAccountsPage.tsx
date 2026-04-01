@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,7 @@ import {
 } from "@/hooks/useClientAccounts";
 import { Pagination } from "@/components/ui/pagination";
 import { useProjects } from "@/hooks/useProjects";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Profile } from "@/types";
@@ -157,6 +159,7 @@ export default function ClientAccountsPage() {
   const [managingClient, setManagingClient] = useState<Profile | null>(null);
   const [resetClient, setResetClient] = useState<Profile | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newResetPassword, setNewResetPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
@@ -184,6 +187,7 @@ export default function ClientAccountsPage() {
       notes: "",
     });
     setShowPassword(false);
+    setConsent(false);
     setIsCreateOpen(true);
   };
 
@@ -563,6 +567,23 @@ export default function ClientAccountsPage() {
                 Generada automáticamente. Puedes cambiarla o regenerarla.
               </p>
             </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="consent"
+                checked={consent}
+                onCheckedChange={(v) => setConsent(v === true)}
+              />
+              <label htmlFor="consent" className="text-xs text-muted-foreground leading-tight cursor-pointer">
+                El cliente autoriza el tratamiento de sus datos personales conforme a la{" "}
+                <Link to="/privacidad" target="_blank" className="text-primary hover:underline">
+                  Política de Privacidad
+                </Link>{" "}
+                y los{" "}
+                <Link to="/terminos" target="_blank" className="text-primary hover:underline">
+                  Términos y Condiciones
+                </Link>.
+              </label>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -588,6 +609,7 @@ export default function ClientAccountsPage() {
                 !createForm.email.trim() ||
                 !createForm.password ||
                 createForm.password.length < 8 ||
+                !consent ||
                 registerClient.isPending
               }
             >

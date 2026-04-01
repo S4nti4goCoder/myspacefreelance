@@ -1,6 +1,6 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, LogIn, Briefcase } from "lucide-react";
@@ -147,9 +147,11 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Tu espacio de trabajo freelance
-        </p>
+        <div className="text-center text-xs text-muted-foreground mt-6 space-x-1">
+          <Link to="/terminos" className="hover:underline">Terminos y Condiciones</Link>
+          <span>·</span>
+          <Link to="/privacidad" className="hover:underline">Politica de Privacidad</Link>
+        </div>
       </motion.div>
     </div>
   );
