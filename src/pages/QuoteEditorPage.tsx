@@ -1,6 +1,6 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useNavigate, useParams, useBlocker } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -146,7 +146,28 @@ export default function QuoteEditorPage() {
   const [isDirty, setIsDirty] = useState(false);
   const markDirty = useCallback(() => setIsDirty(true), []);
 
-  const blocker = useBlocker(isDirty);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const pendingNavRef = useRef<string | null>(null);
+
+  const safeNavigate = useCallback(
+    (to: string) => {
+      if (isDirty) {
+        pendingNavRef.current = to;
+        setShowUnsavedDialog(true);
+      } else {
+        navigate(to);
+      }
+    },
+    [isDirty, navigate],
+  );
+
+  const confirmLeave = useCallback(() => {
+    setShowUnsavedDialog(false);
+    if (pendingNavRef.current) {
+      navigate(pendingNavRef.current);
+      pendingNavRef.current = null;
+    }
+  }, [navigate]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -551,7 +572,7 @@ export default function QuoteEditorPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/cotizaciones")}
+          onClick={() => safeNavigate("/cotizaciones")}
           className="gap-2 -ml-2 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -1528,8 +1549,8 @@ export default function QuoteEditorPage() {
 
       {/* Unsaved changes dialog */}
       <Dialog
-        open={blocker.state === "blocked"}
-        onOpenChange={(open) => !open && blocker.reset?.()}
+        open={showUnsavedDialog}
+        onOpenChange={(open) => !open && setShowUnsavedDialog(false)}
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -1540,12 +1561,12 @@ export default function QuoteEditorPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => blocker.reset?.()}>
+            <Button variant="outline" onClick={() => setShowUnsavedDialog(false)}>
               Seguir editando
             </Button>
             <Button
               variant="destructive"
-              onClick={() => blocker.proceed?.()}
+              onClick={confirmLeave}
             >
               Salir sin guardar
             </Button>
