@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -43,10 +43,8 @@ import { formatCOP } from "@/lib/utils";
 import { generateQuotePdf } from "@/lib/quotePdf";
 import { useUnsavedChangesGuard } from "@/hooks/quote-editor/useUnsavedChangesGuard";
 import { useQuoteTotals } from "@/hooks/quote-editor/useQuoteTotals";
-import {
-  useQuoteItems,
-  type ItemRow,
-} from "@/hooks/quote-editor/useQuoteItems";
+import { useQuoteItems } from "@/hooks/quote-editor/useQuoteItems";
+import { useQuoteForm } from "@/hooks/quote-editor/useQuoteForm";
 import { toast } from "sonner";
 import type { QuoteItem, QuoteStatus } from "@/types";
 import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
@@ -67,82 +65,50 @@ export default function QuoteEditorPage() {
   const previewRef = useRef<HTMLDivElement>(null);
   const isEditing = !!id;
 
-  // En modo creación, el número lo genera el trigger SQL.
-  // Mostramos un placeholder hasta que el backend lo asigne.
-  const [quoteNumber, setQuoteNumber] = useState("");
-  const [status, setStatus] = useState<QuoteStatus>("draft");
-  const [validDays, setValidDays] = useState(30);
-  const [projectId, setProjectId] = useState<string>("");
-  const [terms, setTerms] = useState("");
-  const [notes, setNotes] = useState("");
-
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientIsCompany, setClientIsCompany] = useState(false);
-  const [clientCompany, setClientCompany] = useState("");
-  const [clientNit, setClientNit] = useState("");
-
-  const [items, setItems] = useState<ItemRow[]>([
-    {
-      tempId: crypto.randomUUID(),
-      description: "",
-      quantity: 1,
-      unit_price: 0,
-      order_index: 0,
-    },
-  ]);
-
-  const [applyIva, setApplyIva] = useState(false);
-  const [applyRetefuente, setApplyRetefuente] = useState(false);
-  const [applyReteica, setApplyReteica] = useState(false);
-  const [ivaRate, setIvaRate] = useState(19);
-  const [retefuenteRate, setRetefuenteRate] = useState(10);
-  const [reteicaRate, setReteicaRate] = useState(0.414);
-  const [discountType, setDiscountType] = useState<"percentage" | "fixed">(
-    "percentage",
-  );
-  const [discountValue, setDiscountValue] = useState(0);
-
-  useEffect(() => {
-    if (isEditing && existingQuote) {
-      setQuoteNumber(existingQuote.quote_number);
-      setStatus(existingQuote.status);
-      setValidDays(existingQuote.valid_days);
-      setProjectId(existingQuote.project_id ?? "");
-      setTerms(existingQuote.terms ?? "");
-      setNotes(existingQuote.notes ?? "");
-      setClientName(existingQuote.client_name);
-      setClientEmail(existingQuote.client_email ?? "");
-      setClientPhone(existingQuote.client_phone ?? "");
-      setClientIsCompany(existingQuote.client_is_company);
-      setClientCompany(existingQuote.client_company ?? "");
-      setClientNit(existingQuote.client_nit ?? "");
-      setApplyIva(existingQuote.apply_iva);
-      setApplyRetefuente(existingQuote.apply_retefuente);
-      setApplyReteica(existingQuote.apply_reteica);
-      setIvaRate(existingQuote.iva_rate);
-      setRetefuenteRate(existingQuote.retefuente_rate);
-      setReteicaRate(existingQuote.reteica_rate);
-      setDiscountType(existingQuote.discount_type);
-      setDiscountValue(existingQuote.discount_value);
-      if (existingQuote.items && existingQuote.items.length > 0) {
-        setItems(existingQuote.items.map((i) => ({ ...i, tempId: i.id })));
-      }
-      return;
-    }
-
-    // Modo creación: solo cargar configuración fiscal del perfil.
-    // El quote_number lo asigna el trigger SQL al guardar.
-    if (profile) {
-      setApplyIva(profile.apply_iva ?? false);
-      setApplyRetefuente(profile.apply_retefuente ?? false);
-      setApplyReteica(profile.apply_reteica ?? false);
-      setIvaRate(profile.iva_rate ?? 19);
-      setRetefuenteRate(profile.retefuente_rate ?? 10);
-      setReteicaRate(profile.reteica_rate ?? 0.414);
-    }
-  }, [profile, existingQuote, isEditing]);
+  const {
+    quoteNumber,
+    setQuoteNumber,
+    status,
+    setStatus,
+    validDays,
+    setValidDays,
+    projectId,
+    setProjectId,
+    terms,
+    setTerms,
+    notes,
+    setNotes,
+    clientName,
+    setClientName,
+    clientEmail,
+    setClientEmail,
+    clientPhone,
+    setClientPhone,
+    clientIsCompany,
+    setClientIsCompany,
+    clientCompany,
+    setClientCompany,
+    clientNit,
+    setClientNit,
+    items,
+    setItems,
+    applyIva,
+    setApplyIva,
+    applyRetefuente,
+    setApplyRetefuente,
+    applyReteica,
+    setApplyReteica,
+    ivaRate,
+    setIvaRate,
+    retefuenteRate,
+    setRetefuenteRate,
+    reteicaRate,
+    setReteicaRate,
+    discountType,
+    setDiscountType,
+    discountValue,
+    setDiscountValue,
+  } = useQuoteForm(existingQuote, profile ?? null, isEditing);
 
   const {
     markDirty,
