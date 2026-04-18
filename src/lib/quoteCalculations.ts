@@ -46,3 +46,34 @@ export function calculateTaxes(base: number, config: TaxConfig): TaxAmounts {
     reteicaAmount: config.applyReteica ? base * (config.reteicaRate / 100) : 0,
   };
 }
+
+export interface QuoteTotals extends TaxAmounts {
+  subtotal: number;
+  discountAmount: number;
+  afterDiscount: number;
+  total: number;
+}
+
+export function calculateQuoteTotals(
+  items: QuoteItemForCalc[],
+  discount: DiscountConfig,
+  taxes: TaxConfig,
+): QuoteTotals {
+  const subtotal = calculateSubtotal(items);
+  const discountAmount = calculateDiscount(subtotal, discount);
+  const afterDiscount = subtotal - discountAmount;
+  const taxAmounts = calculateTaxes(afterDiscount, taxes);
+  const total =
+    afterDiscount +
+    taxAmounts.ivaAmount -
+    taxAmounts.retefuenteAmount -
+    taxAmounts.reteicaAmount;
+
+  return {
+    subtotal,
+    discountAmount,
+    afterDiscount,
+    ...taxAmounts,
+    total,
+  };
+}

@@ -3,6 +3,7 @@ import {
   calculateSubtotal,
   calculateDiscount,
   calculateTaxes,
+  calculateQuoteTotals,
 } from "./quoteCalculations";
 
 describe("calculateSubtotal", () => {
@@ -154,5 +155,110 @@ describe("calculateTaxes", () => {
       retefuenteAmount: 0,
       reteicaAmount: 0,
     });
+  });
+});
+
+describe("calculateQuoteTotals (integration)", () => {
+  it("computes totals for a realistic Colombia quote", () => {
+    const result = calculateQuoteTotals(
+      [
+        { quantity: 2, unit_price: 500 },
+        { quantity: 1, unit_price: 500 },
+      ],
+      { type: "percentage", value: 5 },
+      {
+        applyIva: true,
+        applyRetefuente: true,
+        applyReteica: true,
+        ivaRate: 19,
+        retefuenteRate: 10,
+        reteicaRate: 0.414,
+      },
+    );
+
+    expect(result.subtotal).toBe(1500);
+    expect(result.discountAmount).toBe(75);
+    expect(result.afterDiscount).toBe(1425);
+    expect(result.ivaAmount).toBe(270.75);
+    expect(result.retefuenteAmount).toBe(142.5);
+    expect(result.reteicaAmount).toBeCloseTo(5.8995, 5);
+    expect(result.total).toBeCloseTo(1547.3505, 5);
+  });
+
+  it("returns zeros for empty items", () => {
+    const result = calculateQuoteTotals(
+      [],
+      { type: "percentage", value: 0 },
+      {
+        applyIva: false,
+        applyRetefuente: false,
+        applyReteica: false,
+        ivaRate: 19,
+        retefuenteRate: 10,
+        reteicaRate: 0.414,
+      },
+    );
+
+    expect(result.subtotal).toBe(0);
+    expect(result.discountAmount).toBe(0);
+    expect(result.afterDiscount).toBe(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("handles a quote without any taxes or discount", () => {
+    const result = calculateQuoteTotals(
+      [{ quantity: 1, unit_price: 1000 }],
+      { type: "percentage", value: 0 },
+      {
+        applyIva: false,
+        applyRetefuente: false,
+        applyReteica: false,
+        ivaRate: 19,
+        retefuenteRate: 10,
+        reteicaRate: 0.414,
+      },
+    );
+
+    expect(result.total).toBe(1000);
+  });
+
+  it("handles fixed discount greater than subtotal (documents current behavior)", () => {
+    const result = calculateQuoteTotals(
+      [{ quantity: 1, unit_price: 100 }],
+      { type: "fixed", value: 500 },
+      {
+        applyIva: false,
+        applyRetefuente: false,
+        applyReteica: false,
+        ivaRate: 19,
+        retefuenteRate: 10,
+        reteicaRate: 0.414,
+      },
+    );
+
+    expect(result.subtotal).toBe(100);
+    expect(result.discountAmount).toBe(500);
+    expect(result.afterDiscount).toBe(-400);
+    expect(result.total).toBe(-400);
+  });
+
+  it("ignores items with quantity 0 in the subtotal", () => {
+    const result = calculateQuoteTotals(
+      [
+        { quantity: 0, unit_price: 999 },
+        { quantity: 2, unit_price: 100 },
+      ],
+      { type: "percentage", value: 0 },
+      {
+        applyIva: false,
+        applyRetefuente: false,
+        applyReteica: false,
+        ivaRate: 19,
+        retefuenteRate: 10,
+        reteicaRate: 0.414,
+      },
+    );
+
+    expect(result.subtotal).toBe(200);
   });
 });
