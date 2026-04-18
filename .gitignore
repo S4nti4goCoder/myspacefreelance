@@ -31,7 +31,5 @@ dist-ssr
 
 # Test artifacts
 coverage/
-playwright-report/
-test-results/
 .vitest-cache/
 .playwright-mcp/

@@ -13,7 +13,7 @@ Dos problemas concretos:
 
 ## Qué queremos conseguir
 
-- Tests que cubran los cálculos de impuestos (unitarios, de componente y e2e de punta a punta).
+- Tests unitarios y de componente que cubran los cálculos de impuestos. La validación e2e se hace manualmente con el MCP de Playwright del asistente cuando haga falta.
 - `QuoteEditorPage.tsx` baja a unas 250 líneas.
 - `ProjectsPage.tsx` baja a unas 220.
 - El usuario final no debe notar diferencia en la app mientras hacemos todo esto.
@@ -40,7 +40,6 @@ devDependencies:
   @testing-library/react
   @testing-library/jest-dom
   @testing-library/user-event
-  @playwright/test
 ```
 
 ### Archivos que se crean
@@ -48,16 +47,14 @@ devDependencies:
 ```
 vitest.config.ts                     (config de Vitest, alias @, jsdom, setup)
 src/test/setup.ts                    (matchers de jest-dom, cleanup)
-playwright.config.ts                 (config de e2e)
-tests/e2e/quote-create.spec.ts       (flujo completo: login, crear cotización, totales, PDF)
 src/lib/quoteCalculations.ts         (las funciones puras que hoy viven dentro de QuoteEditorPage)
 src/lib/quoteCalculations.test.ts    (tests unitarios)
 ```
 
 ### Archivos que se tocan
 
-- `package.json`: scripts `test`, `test:ui`, `test:run`, `test:e2e`, `test:coverage`.
-- `.gitignore`: añadir `coverage/`, `playwright-report/`, `test-results/`, `.vitest-cache/`.
+- `package.json`: scripts `test`, `test:ui`, `test:run`, `test:coverage`.
+- `.gitignore`: añadir `coverage/`, `.vitest-cache/`, `.playwright-mcp/`.
 - `src/pages/QuoteEditorPage.tsx`: pasar a usar `lib/quoteCalculations.ts`. Sin cambiar cómo se ve ni cómo se comporta.
 
 ### API de `lib/quoteCalculations.ts`
@@ -104,24 +101,19 @@ calculateQuoteTotals(items: QuoteItem[], discount: DiscountConfig, taxes: TaxCon
 - Un item con cantidad 0: ver qué hace hoy y fijarlo.
 - Redondeo: cifras con decimales que pueden dar errores de precisión en float.
 
-### Test e2e `quote-create.spec.ts`
+### Validación manual del flujo completo
 
-El flujo que queremos cubrir:
+Después del refactor, se verifica a mano con el MCP de Playwright (o abriendo el browser directo):
 
 1. Login con un usuario de prueba.
-2. Ir a `/cotizaciones/nueva`.
-3. Llenar los datos del cliente (empresa, NIT, email).
-4. Agregar 2 items con cantidades y precios conocidos.
-5. Prender IVA 19% y Retefuente 10%.
-6. Poner descuento del 5%.
-7. Revisar que los totales en pantalla cuadran con lo esperado.
-8. Guardar.
-9. Verificar que aparece en `/cotizaciones` con el número y estado correctos.
+2. Ir a `/cotizaciones/nueva`, llenar datos del cliente, agregar items, prender IVA/Retefuente/ReteICA, aplicar descuento.
+3. Revisar que los totales en pantalla cuadran con lo esperado (se compara contra el caso realista de los unit tests).
+4. Abrir una cotización existente en `/cotizaciones/:id/editar` y verificar que los totales cargan igual.
+5. Descargar el PDF y verificar que sale igual que antes del refactor.
 
 ### Cuándo damos por hecha la Fase A
 
 - `npm run test:run` pasa, con cobertura completa en `quoteCalculations.ts`.
-- `npm run test:e2e` pasa.
 - `npm run build` no tira errores ni warnings nuevos.
 - `QuoteEditorPage` se ve y se comporta igual que antes.
 
@@ -254,16 +246,16 @@ Cada fase va en su propia rama, con commits chicos y atómicos. El usuario commi
 ### Reglas mientras trabajamos
 
 1. Un commit = un cambio coherente. Si sin querer se tocan dos cosas, se separan.
-2. Antes de cualquier commit: `npm run build` + `npm run test:run` + (cuando aplica) `npm run test:e2e`, todo verde.
+2. Antes de cualquier commit: `npm run build` + `npm run test:run`, todo verde.
 3. Nada de mezclar refactor con feature nueva en el mismo commit.
-4. Durante el refactor, la app se ve y se comporta igual. Si cambia algo visible, los e2e lo agarran.
+4. Durante el refactor, la app se ve y se comporta igual. Se verifica a mano en el browser al terminar cada componente/hook.
 5. Si aparece un bug que ya estaba, se avisa antes de tocarlo.
 
 ### Mapa de commits (21 en total)
 
 | Fase | Commits | Qué va ahí |
 |------|---------|------------|
-| A    | A1-A6   | Infra de tests, extracción de cálculos, e2e |
+| A    | A1-A6   | Infra de tests, extracción de cálculos |
 | B    | B1-B9   | Refactor QuoteEditor: 4 hooks, 10 componentes, tests |
 | C    | C1-C7   | Refactor ProjectsPage: 3 hooks, 8 componentes, tests |
 
@@ -280,7 +272,6 @@ A, luego B, luego C. No se puede saltar A porque los tests son los que nos avisa
 - Diferencias de redondeo entre el cálculo viejo (inline) y el nuevo (módulo). Los tests unitarios fijan los valores esperados y deberían pescarlo.
 - Regresiones en el PDF. Se prueban dos cotizaciones a mano después del refactor y se comparan visualmente.
 - Tipos que se descuadran al mover estado a hooks. El `tsc` estricto del build se encarga.
-- E2e flakey por depender de Supabase. Usamos un usuario de prueba dedicado y datos sembrados. El cómo lo sembramos se define en el plan de implementación.
 
 ## Cuánto va a tomar
 
