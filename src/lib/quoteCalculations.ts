@@ -21,3 +21,28 @@ export function calculateDiscount(
   }
   return discount.value;
 }
+
+export interface TaxConfig {
+  applyIva: boolean;
+  ivaRate: number;
+  applyRetefuente: boolean;
+  retefuenteRate: number;
+  applyReteica: boolean;
+  reteicaRate: number;
+}
+
+export interface TaxAmounts {
+  ivaAmount: number;
+  retefuenteAmount: number;
+  reteicaAmount: number;
+}
+
+export function calculateTaxes(base: number, config: TaxConfig): TaxAmounts {
+  return {
+    ivaAmount: config.applyIva ? base * (config.ivaRate / 100) : 0,
+    retefuenteAmount: config.applyRetefuente
+      ? base * (config.retefuenteRate / 100)
+      : 0,
+    reteicaAmount: config.applyReteica ? base * (config.reteicaRate / 100) : 0,
+  };
+}
