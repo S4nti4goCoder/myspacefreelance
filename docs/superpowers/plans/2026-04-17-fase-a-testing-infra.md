@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Dejar montada la infra de tests (Vitest + React Testing Library + Playwright), extraer los cálculos fiscales de `QuoteEditorPage` a un módulo puro con cobertura completa, y cubrir el flujo de creación de cotización con un test e2e.
+**Goal:** Dejar montada la infra de tests (Vitest + React Testing Library) y extraer los cálculos fiscales de `QuoteEditorPage` a un módulo puro con cobertura completa.
 
-**Architecture:** Vitest corre los tests unitarios y de componente (con jsdom). Playwright corre los e2e contra el dev server real. Los cálculos de cotización se extraen a `src/lib/quoteCalculations.ts` como funciones puras sin dependencias de React ni Supabase, para que se puedan testear en aislamiento.
+**Architecture:** Vitest corre los tests unitarios y de componente (con jsdom). Los cálculos de cotización se extraen a `src/lib/quoteCalculations.ts` como funciones puras sin dependencias de React ni Supabase, para que se puedan testear en aislamiento.
 
-**Tech Stack:** Vitest 2.x, jsdom, @testing-library/react, @testing-library/user-event, @testing-library/jest-dom, @playwright/test.
+**Tech Stack:** Vitest 2.x, jsdom, @testing-library/react, @testing-library/user-event, @testing-library/jest-dom.
 
 **Nota importante:** El usuario commitea manualmente. Cada tarea termina con un mensaje de commit sugerido (breve, en inglés, conventional commits). No ejecutes `git commit`, `git add`, ni nada que cree commits — solo muestra el mensaje.
 
@@ -50,7 +50,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
-    exclude: ["node_modules", "dist", "tests/e2e/**"],
+    exclude: ["node_modules", "dist"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
@@ -750,287 +750,7 @@ Archivos a stagear:
 
 ---
 
-## Task 6: Instalar Playwright
-
-**Files:**
-- Modify: `package.json`
-- Create: `playwright.config.ts`
-- Create: `tests/e2e/.gitkeep` (directorio nuevo)
-
-- [ ] **Step 1: Instalar Playwright**
-
-Run:
-```bash
-npm install -D @playwright/test
-npx playwright install chromium
-```
-
-Expected: instala dependencia + descarga browser Chromium.
-
-- [ ] **Step 2: Crear `playwright.config.ts`**
-
-Create at project root:
-
-```ts
-import { defineConfig, devices } from "@playwright/test";
-
-export default defineConfig({
-  testDir: "./tests/e2e",
-  fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: 1,
-  reporter: "html",
-  use: {
-    baseURL: "http://localhost:5173",
-    trace: "on-first-retry",
-    video: "retain-on-failure",
-  },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
-});
-```
-
-- [ ] **Step 3: Crear directorio `tests/e2e/`**
-
-Run: `mkdir -p tests/e2e`
-
-- [ ] **Step 4: Agregar scripts e2e a `package.json`**
-
-In the `scripts` object, add:
-
-```json
-"test:e2e": "playwright test",
-"test:e2e:ui": "playwright test --ui"
-```
-
-- [ ] **Step 5: Excluir tests e2e de TypeScript app build**
-
-Edit `tsconfig.app.json` — el `exclude` ya no existe; agregar:
-
-```json
-"exclude": ["tests/e2e/**"]
-```
-
-Si no existe el array `exclude`, agregarlo como hermano de `include`.
-
-- [ ] **Step 6: Verificar que el build sigue funcionando**
-
-Run: `npm run build`
-
-Expected: sin errores.
-
-- [ ] **Step 7: Mostrar al usuario el mensaje de commit**
-
-Al usuario:
-
-```
-chore: add playwright for e2e tests
-```
-
-Archivos a stagear:
-- `package.json`
-- `package-lock.json`
-- `playwright.config.ts`
-- `tsconfig.app.json`
-
----
-
-## Task 7: Test e2e del flujo de creación de cotización
-
-**Files:**
-- Create: `tests/e2e/quote-create.spec.ts`
-- Create: `.env.test.example`
-- Modify: `playwright.config.ts` (cargar env)
-
-**Decisión de diseño para credenciales:**
-El test e2e necesita un usuario freelancer de prueba real en el Supabase del proyecto. El usuario debe crearlo manualmente una vez y poner sus credenciales en `.env.test` (no se commitea). El archivo `.env.test.example` sí se commitea como plantilla.
-
-- [ ] **Step 1: Crear `.env.test.example`**
-
-Create at project root:
-
-```
-# Credenciales de usuario de prueba para tests e2e.
-# Copiar este archivo a .env.test y completar con credenciales reales.
-# .env.test NO debe commitearse.
-E2E_TEST_EMAIL=test-freelancer@example.com
-E2E_TEST_PASSWORD=
-```
-
-- [ ] **Step 2: Actualizar `.gitignore` para excluir `.env.test`**
-
-Edit `.gitignore`, agregar una línea:
-
-```
-.env.test
-```
-
-(La Task 8 agrega más entradas al gitignore; esta queda por la sensibilidad.)
-
-- [ ] **Step 3: Actualizar `playwright.config.ts` para cargar `.env.test`**
-
-Modify `playwright.config.ts`, add at the top:
-
-```ts
-import dotenv from "dotenv";
-dotenv.config({ path: ".env.test" });
-```
-
-Run: `npm install -D dotenv`
-
-- [ ] **Step 4: Escribir el test e2e**
-
-Create `tests/e2e/quote-create.spec.ts`:
-
-```ts
-import { test, expect } from "@playwright/test";
-
-const email = process.env.E2E_TEST_EMAIL;
-const password = process.env.E2E_TEST_PASSWORD;
-
-test.describe("Quote creation flow", () => {
-  test.skip(
-    !email || !password,
-    "Missing E2E_TEST_EMAIL / E2E_TEST_PASSWORD — see .env.test.example",
-  );
-
-  test("creates a quote with IVA and Retefuente, calculated correctly", async ({ page }) => {
-    // Login
-    await page.goto("/login");
-    await page.getByLabel(/email/i).fill(email!);
-    await page.getByLabel(/contraseña/i).fill(password!);
-    await page.getByRole("button", { name: /iniciar sesión/i }).click();
-    await expect(page).toHaveURL(/\/(|proyectos|cotizaciones)/, {
-      timeout: 10_000,
-    });
-
-    // Ir al editor de cotización
-    await page.goto("/cotizaciones/nueva");
-    await expect(
-      page.getByRole("heading", { name: /editor de cotización/i }),
-    ).toBeVisible();
-
-    // Llenar datos del cliente (persona)
-    await page.getByLabel(/nombre/i).first().fill("Cliente E2E Test");
-    await page.getByLabel(/email/i).first().fill("cliente@test.com");
-
-    // Llenar el primer item (el form ya viene con uno vacío)
-    const firstItemDescription = page
-      .getByPlaceholder(/descripción/i)
-      .first();
-    await firstItemDescription.fill("Servicio de prueba 1");
-    const firstItemQty = page
-      .locator('input[type="number"]')
-      .first();
-    await firstItemQty.fill("2");
-    const firstItemPrice = page
-      .locator('input[type="number"]')
-      .nth(1);
-    await firstItemPrice.fill("500");
-
-    // Agregar segundo item
-    await page.getByRole("button", { name: /agregar item/i }).click();
-    const secondItemDescription = page
-      .getByPlaceholder(/descripción/i)
-      .nth(1);
-    await secondItemDescription.fill("Servicio de prueba 2");
-    await page.locator('input[type="number"]').nth(2).fill("1");
-    await page.locator('input[type="number"]').nth(3).fill("500");
-
-    // Prender IVA y Retefuente
-    await page.getByLabel(/iva/i).check();
-    await page.getByLabel(/retefuente/i).check();
-
-    // Descuento 5%
-    const discountInput = page.getByLabel(/descuento/i);
-    await discountInput.fill("5");
-
-    // Verificar totales
-    // Subtotal: 1500; Descuento 75; Base 1425; IVA 270.75; Retefuente 142.5
-    // Total: 1425 + 270.75 - 142.5 = 1553.25
-    await expect(page.getByText(/1[.,]?500/)).toBeVisible();
-    await expect(page.getByText(/1[.,]?553/)).toBeVisible();
-
-    // Guardar
-    await page.getByRole("button", { name: /guardar/i }).click();
-    await expect(page).toHaveURL(/\/cotizaciones($|\/)/, { timeout: 10_000 });
-
-    // Aparece en listado
-    await expect(page.getByText("Cliente E2E Test")).toBeVisible();
-  });
-});
-```
-
-**Nota al ejecutor:** los selectores por placeholder / label pueden necesitar ajuste. Después de escribirlos, correr el test con `--ui` y corregir selectores que no encuentren elementos. Preferir `getByRole` y `getByLabel` sobre selectores por clase.
-
-- [ ] **Step 5: El usuario debe crear `.env.test` con credenciales reales**
-
-Indicar al usuario:
-
-1. Copiar `.env.test.example` a `.env.test`.
-2. Crear un usuario freelancer de prueba en Supabase (vía la UI de signup o insertándolo manualmente).
-3. Poner email y password en `.env.test`.
-
-Sin `.env.test` el test queda `skipped` pero no falla — así el CI no se rompe por falta de credenciales.
-
-- [ ] **Step 6: Correr el test e2e**
-
-Si el usuario ya creó `.env.test`:
-
-Run: `npm run test:e2e`
-
-Expected: 1 test pasa.
-
-Si no hay `.env.test`:
-
-Run: `npm run test:e2e`
-
-Expected: 1 test skipped con el mensaje "Missing E2E_TEST_EMAIL...".
-
-Si el test falla por selectores (muy probable en la primera corrida), iterar:
-
-Run: `npm run test:e2e:ui`
-
-Ajustar los selectores en el `.spec.ts` hasta que el test pase.
-
-- [ ] **Step 7: Verificar que todo lo demás sigue verde**
-
-Run: `npm run test:run && npm run build`
-
-Expected: ambos pasan.
-
-- [ ] **Step 8: Mostrar al usuario el mensaje de commit**
-
-Al usuario:
-
-```
-test: add e2e test for quote creation flow
-```
-
-Archivos a stagear:
-- `tests/e2e/quote-create.spec.ts`
-- `.env.test.example`
-- `.gitignore`
-- `playwright.config.ts`
-- `package.json`
-- `package-lock.json`
-
-No stagear `.env.test` (ya está en gitignore).
-
----
-
-## Task 8: Actualizar `.gitignore` para artefactos de tests
+## Task 6: Actualizar `.gitignore` para artefactos de tests
 
 **Files:**
 - Modify: `.gitignore`
@@ -1046,18 +766,15 @@ Append at the end of `.gitignore`:
 ```
 # Test artifacts
 coverage/
-playwright-report/
-test-results/
 .vitest-cache/
+.playwright-mcp/
 ```
-
-(La entrada `.env.test` ya se agregó en la Task 7.)
 
 - [ ] **Step 3: Verificar que git ya no trackea estos directorios**
 
 Run: `git status`
 
-Expected: no aparecen archivos dentro de `coverage/`, `playwright-report/`, `test-results/` como untracked. Si ya están trackeados (porque se commiteo alguno sin querer), el usuario tendrá que decidir qué hacer. Avisarle.
+Expected: no aparecen archivos dentro de `coverage/`, `.vitest-cache/`, `.playwright-mcp/` como untracked.
 
 - [ ] **Step 4: Mostrar al usuario el mensaje de commit**
 
@@ -1076,11 +793,10 @@ Archivos a stagear:
 
 Antes de dar la fase por cerrada, verificar:
 
-- [ ] `npm run test:run` pasa con 25 tests en verde.
+- [ ] `npm run test:run` pasa con 24 tests en verde.
 - [ ] `npm run test:coverage` muestra 100% en `src/lib/quoteCalculations.ts`.
-- [ ] `npm run test:e2e` pasa (si hay `.env.test`) o skippea limpiamente.
 - [ ] `npm run build` pasa sin errores nuevos.
 - [ ] `QuoteEditorPage` se ve y se comporta igual en el browser (prueba manual: crear y editar una cotización, verificar totales y PDF).
-- [ ] Los 8 commits sugeridos se han aplicado.
+- [ ] Los 6 commits sugeridos se han aplicado.
 
 Una vez cumplido esto, la rama está lista para mergear. Después viene la Fase B (refactor de `QuoteEditorPage`), que tendrá su propio plan.

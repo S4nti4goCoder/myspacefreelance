@@ -40,6 +40,7 @@ import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
 import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import { formatCOP } from "@/lib/utils";
+import { calculateQuoteTotals } from "@/lib/quoteCalculations";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import type { QuoteItem, QuoteStatus } from "@/types";
@@ -176,23 +177,41 @@ export default function QuoteEditorPage() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [isDirty]);
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0),
-    [items],
+  const totals = useMemo(
+    () =>
+      calculateQuoteTotals(
+        items.map((i) => ({ quantity: i.quantity, unit_price: i.unit_price })),
+        { type: discountType, value: discountValue },
+        {
+          applyIva,
+          ivaRate,
+          applyRetefuente,
+          retefuenteRate,
+          applyReteica,
+          reteicaRate,
+        },
+      ),
+    [
+      items,
+      discountType,
+      discountValue,
+      applyIva,
+      ivaRate,
+      applyRetefuente,
+      retefuenteRate,
+      applyReteica,
+      reteicaRate,
+    ],
   );
 
-  const discountAmount = useMemo(() => {
-    if (discountType === "percentage") return subtotal * (discountValue / 100);
-    return discountValue;
-  }, [subtotal, discountType, discountValue]);
-
-  const afterDiscount = subtotal - discountAmount;
-  const ivaAmount = applyIva ? afterDiscount * (ivaRate / 100) : 0;
-  const retefuenteAmount = applyRetefuente
-    ? afterDiscount * (retefuenteRate / 100)
-    : 0;
-  const reteicaAmount = applyReteica ? afterDiscount * (reteicaRate / 100) : 0;
-  const total = afterDiscount + ivaAmount - retefuenteAmount - reteicaAmount;
+  const {
+    subtotal,
+    discountAmount,
+    ivaAmount,
+    retefuenteAmount,
+    reteicaAmount,
+    total,
+  } = totals;
 
   const addItem = () => {
     markDirty();
