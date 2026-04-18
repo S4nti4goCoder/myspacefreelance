@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -42,6 +42,7 @@ import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import { formatCOP } from "@/lib/utils";
 import { calculateQuoteTotals } from "@/lib/quoteCalculations";
 import { generateQuotePdf } from "@/lib/quotePdf";
+import { useUnsavedChangesGuard } from "@/hooks/quote-editor/useUnsavedChangesGuard";
 import { toast } from "sonner";
 import type { QuoteItem, QuoteStatus } from "@/types";
 import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
@@ -143,39 +144,14 @@ export default function QuoteEditorPage() {
     }
   }, [profile, existingQuote, isEditing]);
 
-  // Track dirty state for unsaved changes warning
-  const [isDirty, setIsDirty] = useState(false);
-  const markDirty = useCallback(() => setIsDirty(true), []);
-
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const pendingNavRef = useRef<string | null>(null);
-
-  const safeNavigate = useCallback(
-    (to: string) => {
-      if (isDirty) {
-        pendingNavRef.current = to;
-        setShowUnsavedDialog(true);
-      } else {
-        navigate(to);
-      }
-    },
-    [isDirty, navigate],
-  );
-
-  const confirmLeave = useCallback(() => {
-    setShowUnsavedDialog(false);
-    if (pendingNavRef.current) {
-      navigate(pendingNavRef.current);
-      pendingNavRef.current = null;
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!isDirty) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [isDirty]);
+  const {
+    markDirty,
+    clearDirty,
+    showDialog: showUnsavedDialog,
+    safeNavigate,
+    confirmLeave,
+    cancelLeave,
+  } = useUnsavedChangesGuard();
 
   const totals = useMemo(
     () =>
@@ -328,7 +304,7 @@ export default function QuoteEditorPage() {
         },
         {
           onSuccess: () => {
-            setIsDirty(false);
+            clearDirty();
             navigate("/cotizaciones");
           },
         },
@@ -344,7 +320,7 @@ export default function QuoteEditorPage() {
         {
           onSuccess: (data) => {
             setQuoteNumber(data.quote_number);
-            setIsDirty(false);
+            clearDirty();
             navigate("/cotizaciones");
           },
         },
@@ -1387,7 +1363,7 @@ export default function QuoteEditorPage() {
       {/* Unsaved changes dialog */}
       <Dialog
         open={showUnsavedDialog}
-        onOpenChange={(open) => !open && setShowUnsavedDialog(false)}
+        onOpenChange={(open) => !open && cancelLeave()}
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -1398,7 +1374,7 @@ export default function QuoteEditorPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUnsavedDialog(false)}>
+            <Button variant="outline" onClick={cancelLeave}>
               Seguir editando
             </Button>
             <Button
