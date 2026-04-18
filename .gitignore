@@ -28,3 +28,10 @@ dist-ssr
 
 # Claude Code
 .claude/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+.vitest-cache/
+.playwright-mcp/
