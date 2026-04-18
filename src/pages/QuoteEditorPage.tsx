@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -40,9 +40,9 @@ import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
 import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import { formatCOP } from "@/lib/utils";
-import { calculateQuoteTotals } from "@/lib/quoteCalculations";
 import { generateQuotePdf } from "@/lib/quotePdf";
 import { useUnsavedChangesGuard } from "@/hooks/quote-editor/useUnsavedChangesGuard";
+import { useQuoteTotals } from "@/hooks/quote-editor/useQuoteTotals";
 import { toast } from "sonner";
 import type { QuoteItem, QuoteStatus } from "@/types";
 import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
@@ -153,31 +153,17 @@ export default function QuoteEditorPage() {
     cancelLeave,
   } = useUnsavedChangesGuard();
 
-  const totals = useMemo(
-    () =>
-      calculateQuoteTotals(
-        items.map((i) => ({ quantity: i.quantity, unit_price: i.unit_price })),
-        { type: discountType, value: discountValue },
-        {
-          applyIva,
-          ivaRate,
-          applyRetefuente,
-          retefuenteRate,
-          applyReteica,
-          reteicaRate,
-        },
-      ),
-    [
-      items,
-      discountType,
-      discountValue,
+  const totals = useQuoteTotals(
+    items.map((i) => ({ quantity: i.quantity, unit_price: i.unit_price })),
+    { type: discountType, value: discountValue },
+    {
       applyIva,
       ivaRate,
       applyRetefuente,
       retefuenteRate,
       applyReteica,
       reteicaRate,
-    ],
+    },
   );
 
   const {
