@@ -43,13 +43,13 @@ import { formatCOP } from "@/lib/utils";
 import { generateQuotePdf } from "@/lib/quotePdf";
 import { useUnsavedChangesGuard } from "@/hooks/quote-editor/useUnsavedChangesGuard";
 import { useQuoteTotals } from "@/hooks/quote-editor/useQuoteTotals";
+import {
+  useQuoteItems,
+  type ItemRow,
+} from "@/hooks/quote-editor/useQuoteItems";
 import { toast } from "sonner";
 import type { QuoteItem, QuoteStatus } from "@/types";
 import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
-
-interface ItemRow extends Omit<QuoteItem, "id" | "quote_id"> {
-  tempId: string;
-}
 
 const ACCENT_BLUE = "#1B2A4A";
 const ACCENT_RED = "#E63946";
@@ -175,51 +175,11 @@ export default function QuoteEditorPage() {
     total,
   } = totals;
 
-  const addItem = () => {
-    markDirty();
-    setItems((prev) => [
-      ...prev,
-      {
-        tempId: crypto.randomUUID(),
-        description: "",
-        quantity: 1,
-        unit_price: 0,
-        order_index: prev.length,
-      },
-    ]);
-  };
-
-  const removeItem = (tempId: string) => {
-    if (items.length === 1) return;
-    markDirty();
-    setItems((prev) => prev.filter((i) => i.tempId !== tempId));
-  };
-
-  const updateItem = (
-    tempId: string,
-    field: keyof ItemRow,
-    value: string | number,
-  ) => {
-    setItems((prev) =>
-      prev.map((i) => (i.tempId === tempId ? { ...i, [field]: value } : i)),
-    );
-  };
-
-  const addServiceToItems = (serviceId: string) => {
-    const service = services?.find((s) => s.id === serviceId);
-    if (!service) return;
-    markDirty();
-    setItems((prev) => [
-      ...prev,
-      {
-        tempId: crypto.randomUUID(),
-        description: service.name,
-        quantity: 1,
-        unit_price: service.price,
-        order_index: prev.length,
-      },
-    ]);
-  };
+  const { addItem, removeItem, updateItem, addServiceToItems } = useQuoteItems(
+    items,
+    setItems,
+    markDirty,
+  );
 
   const getItemsInput = (): Omit<QuoteItem, "quote_id">[] =>
     items
@@ -606,7 +566,7 @@ export default function QuoteEditorPage() {
                     {services.map((s) => (
                       <DropdownMenuItem
                         key={s.id}
-                        onClick={() => addServiceToItems(s.id)}
+                        onClick={() => addServiceToItems(s)}
                       >
                         <span className="flex-1 truncate">{s.name}</span>
                         <span className="text-xs text-muted-foreground ml-2">
