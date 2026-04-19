@@ -1,29 +1,14 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Plus,
-  Search,
   FolderKanban,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  Calendar,
-  User,
-  Tag,
   ArrowRight,
-  ArrowUpDown,
   X,
-  Filter,
-  ChevronDown,
   Archive,
-  ArchiveRestore,
-  Copy,
   LayoutGrid,
   CalendarDays,
-  CheckSquare,
-  Square,
 } from "lucide-react";
 import {
   useProjects,
@@ -31,82 +16,49 @@ import {
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
-  useDuplicateProject,
 } from "@/hooks/useProjects";
 import { useCanAccess } from "@/hooks/useMyPermissions";
+import { useProjectsFilters } from "@/hooks/projects-list/useProjectsFilters";
+import { useProjectsBatchSelection } from "@/hooks/projects-list/useProjectsBatchSelection";
+import { useProjectDuplicate } from "@/hooks/projects-list/useProjectDuplicate";
 import ProjectForm from "@/components/shared/ProjectForm";
 import type { ProjectFormData } from "@/components/shared/ProjectForm";
+import ProjectCalendar from "@/components/shared/ProjectCalendar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { formatDateShort, formatCOP } from "@/lib/utils";
-import {
-  PROJECT_STATUS_LABELS as statusLabels,
-  PROJECT_STATUS_VARIANTS as statusVariants,
-  PROJECT_STATUS_COLORS as statusColors,
-} from "@/lib/constants";
-import { supabase } from "@/lib/supabase";
-import ProjectCalendar from "@/components/shared/ProjectCalendar";
 import { Pagination } from "@/components/ui/pagination";
-import type { Project, Task } from "@/types";
-
-type SortOption =
-  | "created_desc"
-  | "created_asc"
-  | "due_asc"
-  | "due_desc"
-  | "name_asc"
-  | "progress_desc";
-
-const sortLabels: Record<SortOption, string> = {
-  created_desc: "Más recientes",
-  created_asc: "Más antiguos",
-  due_asc: "Entrega próxima",
-  due_desc: "Entrega lejana",
-  name_asc: "Nombre A-Z",
-  progress_desc: "Mayor progreso",
-};
+import { PROJECT_STATUS_LABELS as statusLabels } from "@/lib/constants";
+import { ProjectsToolbar } from "@/components/projects-list/ProjectsToolbar";
+import { ProjectsGrid } from "@/components/projects-list/ProjectsGrid";
+import { ProjectsBatchBar } from "@/components/projects-list/ProjectsBatchBar";
+import { BatchConfirmDialog } from "@/components/projects-list/BatchConfirmDialog";
+import { DeleteProjectDialog } from "@/components/projects-list/DeleteProjectDialog";
+import { ArchiveProjectDialog } from "@/components/projects-list/ArchiveProjectDialog";
+import { DuplicateProjectDialog } from "@/components/projects-list/DuplicateProjectDialog";
+import type { Project } from "@/types";
 
 export default function ProjectsPage() {
   usePageTitle("Proyectos");
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
-  const duplicateProject = useDuplicateProject();
 
   const canCreate = useCanAccess("projects", "can_create");
   const canEdit = useCanAccess("projects", "can_edit");
   const canDelete = useCanAccess("projects", "can_delete");
 
+  const filters = useProjectsFilters();
+  const batch = useProjectsBatchSelection();
+  const duplicate = useProjectDuplicate();
+
   const [viewMode, setViewMode] = useState<"grid" | "calendar">("grid");
   const [page, setPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [batchConfirm, setBatchConfirm] = useState<{
-    action: "archive" | "delete" | "status";
-    status?: string;
-  } | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [clientFilter, setClientFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<SortOption>("created_desc");
-  const [showArchived, setShowArchived] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
@@ -114,88 +66,25 @@ export default function ProjectsPage() {
     null,
   );
 
-  const [duplicatingProject, setDuplicatingProject] = useState<Project | null>(
-    null,
-  );
-  const [duplicateName, setDuplicateName] = useState("");
-  const [duplicateTasks, setDuplicateTasks] = useState<Task[]>([]);
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
-
-  useEffect(() => {
-    if (!duplicatingProject) return;
-    setDuplicateName(`Copia de ${duplicatingProject.name}`);
-    setIsLoadingTasks(true);
-
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", duplicatingProject.id)
-      .order("order_index", { ascending: true })
-      .then(({ data }) => {
-        const tasks = (data ?? []) as Task[];
-        setDuplicateTasks(tasks);
-        setSelectedTaskIds(new Set(tasks.map((t) => t.id)));
-        setIsLoadingTasks(false);
-      });
-  }, [duplicatingProject]);
-
-  const allSelected =
-    duplicateTasks.length > 0 && selectedTaskIds.size === duplicateTasks.length;
-
-  const toggleAllTasks = () => {
-    if (allSelected) {
-      setSelectedTaskIds(new Set());
-    } else {
-      setSelectedTaskIds(new Set(duplicateTasks.map((t) => t.id)));
-    }
-  };
-
-  const toggleTask = (id: string) => {
-    setSelectedTaskIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleDuplicateConfirm = () => {
-    if (!duplicatingProject || !duplicateName.trim()) return;
-    duplicateProject.mutate(
-      {
-        project: duplicatingProject,
-        newName: duplicateName.trim(),
-        taskIds: Array.from(selectedTaskIds),
-      },
-      {
-        onSuccess: () => {
-          setDuplicatingProject(null);
-          setDuplicateTasks([]);
-          setSelectedTaskIds(new Set());
-        },
-      },
-    );
-  };
-
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, clientFilter, sortBy, showArchived]);
+  }, [
+    filters.search,
+    filters.statusFilter,
+    filters.clientFilter,
+    filters.sortBy,
+    filters.showArchived,
+  ]);
 
-  // Paginated query for grid view
   const { data: paginatedData, isLoading } = usePaginatedProjects({
-    search,
-    status: statusFilter as any,
-    clientId: clientFilter,
-    sortBy,
-    showArchived,
+    search: filters.search,
+    status: filters.statusFilter as any,
+    clientId: filters.clientFilter,
+    sortBy: filters.sortBy,
+    showArchived: filters.showArchived,
     page,
   });
 
-  // Full query only for calendar view
   const { data: allProjects } = useProjects();
 
   const filtered = paginatedData?.projects ?? [];
@@ -216,19 +105,6 @@ export default function ProjectsPage() {
       )
       .map((p) => ({ id: p.client!.id, name: p.client!.name }));
   }, [allProjects]);
-
-  const activeFiltersCount = [
-    statusFilter !== "all",
-    clientFilter !== "all",
-    search.length > 0,
-  ].filter(Boolean).length;
-
-  const clearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setClientFilter("all");
-    setSortBy("created_desc");
-  };
 
   const archivedCount = useMemo(
     () => allProjects?.filter((p) => p.status === "archived").length ?? 0,
@@ -266,48 +142,23 @@ export default function ProjectsPage() {
     });
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map((p) => p.id)));
-    }
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
   const handleBatchConfirm = () => {
-    if (!batchConfirm) return;
-    const ids = Array.from(selectedIds);
-
-    if (batchConfirm.action === "delete") {
+    if (!batch.batchConfirm) return;
+    const ids = Array.from(batch.selectedIds);
+    if (batch.batchConfirm.action === "delete") {
       ids.forEach((id) => deleteProject.mutate(id));
-    } else if (batchConfirm.action === "archive") {
+    } else if (batch.batchConfirm.action === "archive") {
       ids.forEach((id) => updateProject.mutate({ id, status: "archived" }));
-    } else if (batchConfirm.action === "status" && batchConfirm.status) {
-      ids.forEach((id) =>
-        updateProject.mutate({ id, status: batchConfirm.status as Project["status"] }),
-      );
+    } else if (batch.batchConfirm.action === "status") {
+      const status = batch.batchConfirm.status as Project["status"];
+      ids.forEach((id) => updateProject.mutate({ id, status }));
     }
-
-    setSelectedIds(new Set());
-    setBatchConfirm(null);
+    batch.clear();
+    batch.setBatchConfirm(null);
   };
-
-  const selectionMode = selectedIds.size > 0;
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -315,15 +166,14 @@ export default function ProjectsPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {showArchived ? "Proyectos archivados" : "Proyectos"}
+            {filters.showArchived ? "Proyectos archivados" : "Proyectos"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {totalItems}{" "}
-            proyecto{totalItems !== 1 ? "s" : ""}
+            {totalItems} proyecto{totalItems !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex gap-2">
-          {!showArchived && (
+          {!filters.showArchived && (
             <div className="flex border border-border rounded-lg overflow-hidden">
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
@@ -348,12 +198,12 @@ export default function ProjectsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              setShowArchived(!showArchived);
-              clearFilters();
+              filters.setShowArchived(!filters.showArchived);
+              filters.resetFilters();
             }}
             className="gap-2"
           >
-            {showArchived ? (
+            {filters.showArchived ? (
               <>
                 <ArrowRight className="h-4 w-4" />
                 Ver activos
@@ -373,7 +223,7 @@ export default function ProjectsPage() {
               </>
             )}
           </Button>
-          {!showArchived && canCreate && (
+          {!filters.showArchived && canCreate && (
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nuevo proyecto
@@ -382,173 +232,21 @@ export default function ProjectsPage() {
         </div>
       </motion.div>
 
-      {/* Filters */}
-      {!showArchived && (
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, descripción, etiqueta o cliente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+      <ProjectsToolbar
+        showArchived={filters.showArchived}
+        search={filters.search}
+        onSearchChange={filters.setSearch}
+        statusFilter={filters.statusFilter}
+        onStatusFilterChange={filters.setStatusFilter}
+        clientFilter={filters.clientFilter}
+        onClientFilterChange={filters.setClientFilter}
+        clientOptions={clientOptions}
+        sortBy={filters.sortBy}
+        onSortByChange={filters.setSortBy}
+        activeFiltersCount={filters.activeFiltersCount}
+        onClear={filters.resetFilters}
+      />
 
-          <div className="flex flex-wrap gap-2 items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
-                  <Filter className="h-3.5 w-3.5" />
-                  {statusFilter === "all"
-                    ? "Estado"
-                    : statusLabels[statusFilter]}
-                  {statusFilter !== "all" && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  )}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-                  Todos los estados
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
-                  Pendiente
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("progress")}>
-                  En progreso
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("review")}>
-                  En revisión
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("done")}>
-                  Completado
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
-                  Cancelado
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {clientOptions.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-2">
-                    <User className="h-3.5 w-3.5" />
-                    {clientFilter === "all"
-                      ? "Cliente"
-                      : (clientOptions.find((c) => c.id === clientFilter)
-                          ?.name ?? "Cliente")}
-                    {clientFilter !== "all" && (
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    )}
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => setClientFilter("all")}>
-                    Todos los clientes
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {clientOptions.map((c) => (
-                    <DropdownMenuItem
-                      key={c.id}
-                      onClick={() => setClientFilter(c.id)}
-                    >
-                      {c.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  {sortLabels[sortBy]}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {(Object.keys(sortLabels) as SortOption[]).map((key) => (
-                  <DropdownMenuItem key={key} onClick={() => setSortBy(key)}>
-                    <span
-                      className={
-                        sortBy === key ? "font-semibold text-primary" : ""
-                      }
-                    >
-                      {sortLabels[key]}
-                    </span>
-                    {sortBy === key && (
-                      <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <AnimatePresence>
-              {activeFiltersCount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="h-9 gap-2"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Limpiar
-                    <Badge
-                      variant="secondary"
-                      className="text-xs px-1.5 py-0 h-4"
-                    >
-                      {activeFiltersCount}
-                    </Badge>
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      )}
-
-      {/* Search en vista archivados */}
-      {showArchived && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar proyectos archivados..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-9"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Loading */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -557,7 +255,6 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* Empty state */}
       {!isLoading && filtered.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -565,344 +262,101 @@ export default function ProjectsPage() {
           className="flex flex-col items-center justify-center py-16 gap-3"
         >
           <div className="bg-muted rounded-full p-4">
-            {showArchived ? (
+            {filters.showArchived ? (
               <Archive className="h-8 w-8 text-muted-foreground" />
             ) : (
               <FolderKanban className="h-8 w-8 text-muted-foreground" />
             )}
           </div>
           <p className="text-muted-foreground font-medium">
-            {showArchived
+            {filters.showArchived
               ? "No hay proyectos archivados"
-              : activeFiltersCount > 0
+              : filters.activeFiltersCount > 0
                 ? "No hay proyectos con estos filtros"
                 : "Aún no tienes proyectos"}
           </p>
-          {!showArchived && activeFiltersCount > 0 && (
-            <Button variant="outline" onClick={clearFilters}>
+          {!filters.showArchived && filters.activeFiltersCount > 0 && (
+            <Button variant="outline" onClick={filters.resetFilters}>
               <X className="mr-2 h-4 w-4" />
               Limpiar filtros
             </Button>
           )}
-          {!showArchived && activeFiltersCount === 0 && canCreate && (
-            <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear primer proyecto
-            </Button>
-          )}
+          {!filters.showArchived &&
+            filters.activeFiltersCount === 0 &&
+            canCreate && (
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Crear primer proyecto
+              </Button>
+            )}
         </motion.div>
       )}
 
-      {/* Calendar view */}
-      {viewMode === "calendar" && !showArchived && !isLoading && (
-        <ProjectCalendar projects={(allProjects ?? []).filter((p) => p.status !== "archived")} />
-      )}
-
-      {/* Projects grid */}
-      {(viewMode === "grid" || showArchived) && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map((project, i) => (
-          <motion.div
-            key={project.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-            layout
-          >
-            <Card
-              className={`transition-colors group ${showArchived ? "opacity-75 hover:opacity-100" : "hover:border-primary/50"} ${selectedIds.has(project.id) ? "ring-2 ring-primary" : ""}`}
-            >
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  {canEdit && !showArchived && viewMode === "grid" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(project.id);
-                      }}
-                      className="shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
-                      aria-label={selectedIds.has(project.id) ? "Deseleccionar" : "Seleccionar"}
-                    >
-                      {selectedIds.has(project.id) ? (
-                        <CheckSquare className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground truncate">
-                      {project.name}
-                    </p>
-                    {project.client && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground truncate">
-                          {project.client.name}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <Badge variant={statusVariants[project.status]}>
-                    {statusLabels[project.status]}
-                  </Badge>
-                </div>
-
-                {project.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {project.description}
-                  </p>
-                )}
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Progreso</span>
-                    <span className={statusColors[project.status]}>
-                      {project.progress}%
-                    </span>
-                  </div>
-                  <Progress value={project.progress} className="h-1.5" />
-                </div>
-
-                <div className="space-y-1">
-                  {project.due_date && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 shrink-0" />
-                      <span>Entrega: {formatDateShort(project.due_date)}</span>
-                    </div>
-                  )}
-                  {project.budget && (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-medium text-foreground">
-                        {formatCOP(project.budget)}
-                      </span>
-                    </div>
-                  )}
-                  {project.tags && project.tags.length > 0 && (
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
-                      {project.tags.slice(0, 3).map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs h-4 px-1"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                      {project.tags.length > 3 && (
-                        <span className="text-xs text-muted-foreground">
-                          +{project.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-border">
-                  <div className="flex gap-1">
-                    {showArchived ? (
-                      <>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Desarchivar"
-                            onClick={() => handleUnarchive(project)}
-                            disabled={updateProject.isPending}
-                          >
-                            <ArchiveRestore className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            title="Eliminar permanentemente"
-                            onClick={() => setDeletingProject(project)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Editar"
-                            onClick={() => setEditingProject(project)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {canCreate && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            title="Duplicar"
-                            onClick={() => setDuplicatingProject(project)}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            title="Archivar"
-                            onClick={() => setArchivingProject(project)}
-                          >
-                            <Archive className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <Link to={`/proyectos/${project.id}`}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs"
-                    >
-                      Ver detalle
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>}
-
-      {/* Pagination */}
-      {(viewMode === "grid" || showArchived) && !isLoading && filtered.length > 0 && (
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          totalItems={totalItems}
-          pageSize={pageSize}
+      {viewMode === "calendar" && !filters.showArchived && !isLoading && (
+        <ProjectCalendar
+          projects={(allProjects ?? []).filter(
+            (p) => p.status !== "archived",
+          )}
         />
       )}
 
-      {/* Batch action bar */}
-      <AnimatePresence>
-        {selectionMode && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card shadow-xl"
-          >
-            <div className="flex items-center gap-2">
-              <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-primary transition-colors">
-                {selectedIds.size === filtered.length ? (
-                  <CheckSquare className="h-4 w-4 text-primary" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-              </button>
-              <span className="text-sm font-medium text-foreground">
-                {selectedIds.size} seleccionado{selectedIds.size !== 1 ? "s" : ""}
-              </span>
-            </div>
+      {(viewMode === "grid" || filters.showArchived) && (
+        <ProjectsGrid
+          projects={filtered}
+          selectedIds={batch.selectedIds}
+          showArchived={filters.showArchived}
+          viewMode={viewMode}
+          canEdit={canEdit}
+          canCreate={canCreate}
+          canDelete={canDelete}
+          isUpdatePending={updateProject.isPending}
+          onToggleSelect={batch.toggle}
+          onEdit={setEditingProject}
+          onDuplicate={duplicate.open}
+          onArchive={setArchivingProject}
+          onUnarchive={handleUnarchive}
+          onDelete={setDeletingProject}
+        />
+      )}
 
-            <div className="h-5 w-px bg-border" />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  Cambiar estado
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center">
-                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "todo" })}>
-                  Pendiente
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "progress" })}>
-                  En progreso
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "review" })}>
-                  En revisión
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "done" })}>
-                  Completado
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBatchConfirm({ action: "status", status: "cancelled" })}>
-                  Cancelado
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => setBatchConfirm({ action: "archive" })}
-            >
-              <Archive className="h-3.5 w-3.5" />
-              Archivar
-            </Button>
-
-            <div className="h-5 w-px bg-border" />
-
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearSelection}>
-              <X className="h-3.5 w-3.5 mr-1" />
-              Cancelar
-            </Button>
-          </motion.div>
+      {(viewMode === "grid" || filters.showArchived) &&
+        !isLoading &&
+        filtered.length > 0 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+          />
         )}
-      </AnimatePresence>
 
-      {/* Batch confirm dialog */}
-      <Dialog open={!!batchConfirm} onOpenChange={(open) => !open && setBatchConfirm(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {batchConfirm?.action === "delete" ? (
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              ) : batchConfirm?.action === "archive" ? (
-                <Archive className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <ArrowUpDown className="h-5 w-5 text-muted-foreground" />
-              )}
-              {batchConfirm?.action === "delete"
-                ? "Eliminar proyectos"
-                : batchConfirm?.action === "archive"
-                  ? "Archivar proyectos"
-                  : "Cambiar estado"}
-            </DialogTitle>
-            <DialogDescription>
-              {batchConfirm?.action === "delete"
-                ? `¿Eliminar permanentemente ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`
-                : batchConfirm?.action === "archive"
-                  ? `¿Archivar ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""}?`
-                  : `¿Cambiar ${selectedIds.size} proyecto${selectedIds.size !== 1 ? "s" : ""} a "${statusLabels[batchConfirm?.status ?? ""]}"?`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBatchConfirm(null)}>
-              Cancelar
-            </Button>
-            <Button
-              variant={batchConfirm?.action === "delete" ? "destructive" : "default"}
-              onClick={handleBatchConfirm}
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProjectsBatchBar
+        count={batch.count}
+        totalInPage={filtered.length}
+        onToggleAll={() => batch.toggleAll(filtered.map((p) => p.id))}
+        onClear={batch.clear}
+        onSetStatus={(status) =>
+          batch.setBatchConfirm({ action: "status", status })
+        }
+        onArchive={() => batch.setBatchConfirm({ action: "archive" })}
+      />
 
-      {/* Create dialog */}
+      <BatchConfirmDialog
+        action={batch.batchConfirm}
+        count={batch.count}
+        statusLabel={
+          batch.batchConfirm?.action === "status"
+            ? statusLabels[batch.batchConfirm.status]
+            : undefined
+        }
+        onConfirm={handleBatchConfirm}
+        onCancel={() => batch.setBatchConfirm(null)}
+      />
+
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -916,7 +370,6 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit dialog */}
       <Dialog
         open={!!editingProject}
         onOpenChange={(open) => !open && setEditingProject(null)}
@@ -939,188 +392,21 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Duplicate dialog */}
-      <Dialog
-        open={!!duplicatingProject}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDuplicatingProject(null);
-            setDuplicateTasks([]);
-            setSelectedTaskIds(new Set());
-          }
-        }}
-      >
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Copy className="h-5 w-5" />
-              Duplicar proyecto
-            </DialogTitle>
-            <DialogDescription>
-              Se creará un nuevo proyecto en estado Pendiente con progreso 0%.
-            </DialogDescription>
-          </DialogHeader>
+      <DuplicateProjectDialog {...duplicate} />
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Nombre del nuevo proyecto
-              </label>
-              <Input
-                value={duplicateName}
-                onChange={(e) => setDuplicateName(e.target.value)}
-                placeholder="Nombre del proyecto..."
-              />
-            </div>
+      <ArchiveProjectDialog
+        project={archivingProject}
+        isPending={updateProject.isPending}
+        onConfirm={handleArchiveConfirm}
+        onCancel={() => setArchivingProject(null)}
+      />
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">
-                  Tareas a copiar
-                  {duplicateTasks.length > 0 && (
-                    <span className="ml-1.5 text-muted-foreground font-normal">
-                      ({selectedTaskIds.size}/{duplicateTasks.length})
-                    </span>
-                  )}
-                </label>
-                {duplicateTasks.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={toggleAllTasks}
-                  >
-                    {allSelected ? "Deseleccionar todas" : "Seleccionar todas"}
-                  </Button>
-                )}
-              </div>
-
-              {isLoadingTasks ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-9 bg-muted animate-pulse rounded-lg"
-                    />
-                  ))}
-                </div>
-              ) : duplicateTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2">
-                  Este proyecto no tiene tareas.
-                </p>
-              ) : (
-                <div className="border border-border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
-                  {duplicateTasks.map((task, i) => (
-                    <label
-                      key={task.id}
-                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors ${i > 0 ? "border-t border-border" : ""}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTaskIds.has(task.id)}
-                        onChange={() => toggleTask(task.id)}
-                        className="h-4 w-4 rounded accent-primary"
-                      />
-                      <span className="text-sm text-foreground truncate">
-                        {task.title}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDuplicatingProject(null);
-                setDuplicateTasks([]);
-                setSelectedTaskIds(new Set());
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleDuplicateConfirm}
-              disabled={!duplicateName.trim() || duplicateProject.isPending}
-            >
-              {duplicateProject.isPending
-                ? "Duplicando..."
-                : "Duplicar proyecto"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Archive confirmation */}
-      <Dialog
-        open={!!archivingProject}
-        onOpenChange={(open) => !open && setArchivingProject(null)}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Archive className="h-5 w-5 text-muted-foreground" />
-              Archivar proyecto
-            </DialogTitle>
-            <DialogDescription>
-              ¿Archivar{" "}
-              <span className="font-semibold text-foreground">
-                "{archivingProject?.name}"
-              </span>
-              ? El proyecto dejará de aparecer en la lista principal pero podrás
-              consultarlo y restaurarlo desde la vista de archivados.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setArchivingProject(null)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleArchiveConfirm}
-              disabled={updateProject.isPending}
-            >
-              {updateProject.isPending ? "Archivando..." : "Archivar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete confirmation */}
-      <Dialog
-        open={!!deletingProject}
-        onOpenChange={(open) => !open && setDeletingProject(null)}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Eliminar proyecto
-            </DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar permanentemente{" "}
-              <span className="font-semibold text-foreground">
-                "{deletingProject?.name}"
-              </span>
-              ? Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingProject(null)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteProject.isPending}
-            >
-              {deleteProject.isPending ? "Eliminando..." : "Sí, eliminar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteProjectDialog
+        project={deletingProject}
+        isPending={deleteProject.isPending}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingProject(null)}
+      />
     </div>
   );
 }
