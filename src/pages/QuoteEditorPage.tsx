@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
 import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
+import { QuoteTaxConfiguration } from "@/components/quote-editor/QuoteTaxConfiguration";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -556,76 +557,20 @@ export default function QuoteEditorPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              {[
-                {
-                  id: "iva",
-                  label: "IVA",
-                  desc: "Responsable de IVA",
-                  checked: applyIva,
-                  setChecked: setApplyIva,
-                  rate: ivaRate,
-                  setRate: setIvaRate,
-                },
-                {
-                  id: "rete",
-                  label: "Retención en la fuente",
-                  desc: "El cliente te retiene",
-                  checked: applyRetefuente,
-                  setChecked: setApplyRetefuente,
-                  rate: retefuenteRate,
-                  setRate: setRetefuenteRate,
-                },
-                {
-                  id: "reteica",
-                  label: "ReteICA",
-                  desc: "Bogotá: 0.414%",
-                  checked: applyReteica,
-                  setChecked: setApplyReteica,
-                  rate: reteicaRate,
-                  setRate: setReteicaRate,
-                },
-              ].map((tax) => (
-                <div
-                  key={tax.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id={tax.id}
-                      checked={tax.checked}
-                      onChange={(e) => tax.setChecked(e.target.checked)}
-                      className="h-4 w-4 rounded accent-primary"
-                    />
-                    <div>
-                      <label
-                        htmlFor={tax.id}
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        {tax.label}
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        {tax.desc}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={tax.rate}
-                      onChange={(e) =>
-                        tax.setRate(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))
-                      }
-                      className="w-20 h-8 text-sm text-right"
-                      disabled={!tax.checked}
-                      step="0.001"
-                    />
-                    <span className="text-sm text-muted-foreground">%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <QuoteTaxConfiguration
+              applyIva={applyIva}
+              onApplyIvaChange={setApplyIva}
+              ivaRate={ivaRate}
+              onIvaRateChange={setIvaRate}
+              applyRetefuente={applyRetefuente}
+              onApplyRetefuenteChange={setApplyRetefuente}
+              retefuenteRate={retefuenteRate}
+              onRetefuenteRateChange={setRetefuenteRate}
+              applyReteica={applyReteica}
+              onApplyReteicaChange={setApplyReteica}
+              reteicaRate={reteicaRate}
+              onReteicaRateChange={setReteicaRate}
+            />
           </div>
 
           {/* Terms & notes */}
