@@ -22,19 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -1272,32 +1265,11 @@ export default function QuoteEditorPage() {
         </div>
       </div>
 
-      {/* Unsaved changes dialog */}
-      <Dialog
+      <UnsavedChangesDialog
         open={showUnsavedDialog}
-        onOpenChange={(open) => !open && cancelLeave()}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Cambios sin guardar</DialogTitle>
-            <DialogDescription>
-              Tienes cambios sin guardar en esta cotización. ¿Deseas salir sin
-              guardar?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelLeave}>
-              Seguir editando
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmLeave}
-            >
-              Salir sin guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onConfirm={confirmLeave}
+        onCancel={cancelLeave}
+      />
     </div>
   );
 }
