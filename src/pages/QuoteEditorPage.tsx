@@ -1,8 +1,6 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
 import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
 import { QuoteTaxConfiguration } from "@/components/quote-editor/QuoteTaxConfiguration";
@@ -10,6 +8,7 @@ import { QuoteDiscountControl } from "@/components/quote-editor/QuoteDiscountCon
 import { QuoteClientSection } from "@/components/quote-editor/QuoteClientSection";
 import { QuoteHeader } from "@/components/quote-editor/QuoteHeader";
 import { QuoteProjectLink } from "@/components/quote-editor/QuoteProjectLink";
+import { QuoteTermsNotes } from "@/components/quote-editor/QuoteTermsNotes";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -340,40 +339,12 @@ export default function QuoteEditorPage() {
             />
           </div>
 
-          {/* Terms & notes */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground">
-              Términos y notas
-            </h2>
-            <div className="space-y-2">
-              <Label>
-                Términos y condiciones{" "}
-                <span className="text-xs text-muted-foreground">
-                  (aparece en el PDF)
-                </span>
-              </Label>
-              <Textarea
-                placeholder="Ej: La cotización es válida por 30 días..."
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>
-                Notas internas{" "}
-                <span className="text-xs text-muted-foreground">
-                  (no aparece en el PDF)
-                </span>
-              </Label>
-              <Textarea
-                placeholder="Notas privadas sobre esta cotización..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
+          <QuoteTermsNotes
+            terms={terms}
+            onTermsChange={setTerms}
+            notes={notes}
+            onNotesChange={setNotes}
+          />
         </div>
 
         {/* ===== RIGHT — PREVIEW ===== */}
