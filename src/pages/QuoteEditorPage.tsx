@@ -27,6 +27,7 @@ import {
 import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
 import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
 import { QuoteTaxConfiguration } from "@/components/quote-editor/QuoteTaxConfiguration";
+import { QuoteDiscountControl } from "@/components/quote-editor/QuoteDiscountControl";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -517,46 +518,12 @@ export default function QuoteEditorPage() {
             <h2 className="text-sm font-semibold text-foreground">
               Descuentos e impuestos
             </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tipo de descuento</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                    >
-                      {discountType === "percentage"
-                        ? "Porcentaje %"
-                        : "Valor fijo $"}
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => setDiscountType("percentage")}
-                    >
-                      Porcentaje %
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDiscountType("fixed")}>
-                      Valor fijo $
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="space-y-2">
-                <Label>Valor del descuento</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={discountValue}
-                  onChange={(e) =>
-                    setDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))
-                  }
-                  placeholder="0"
-                />
-              </div>
-            </div>
+            <QuoteDiscountControl
+              discountType={discountType}
+              onDiscountTypeChange={setDiscountType}
+              discountValue={discountValue}
+              onDiscountValueChange={setDiscountValue}
+            />
             <QuoteTaxConfiguration
               applyIva={applyIva}
               onApplyIvaChange={setApplyIva}
