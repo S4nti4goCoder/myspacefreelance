@@ -1,29 +1,15 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Save,
-  Download,
-  ArrowLeft,
-  FileText,
-  ChevronDown,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
 import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
 import { QuoteTaxConfiguration } from "@/components/quote-editor/QuoteTaxConfiguration";
 import { QuoteDiscountControl } from "@/components/quote-editor/QuoteDiscountControl";
 import { QuoteClientSection } from "@/components/quote-editor/QuoteClientSection";
+import { QuoteHeader } from "@/components/quote-editor/QuoteHeader";
+import { QuoteProjectLink } from "@/components/quote-editor/QuoteProjectLink";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -35,8 +21,7 @@ import { useQuoteTotals } from "@/hooks/quote-editor/useQuoteTotals";
 import { useQuoteItems } from "@/hooks/quote-editor/useQuoteItems";
 import { useQuoteForm } from "@/hooks/quote-editor/useQuoteForm";
 import { toast } from "sonner";
-import type { QuoteItem, QuoteStatus } from "@/types";
-import { QUOTE_STATUS_LABELS as statusLabels } from "@/lib/constants";
+import type { QuoteItem } from "@/types";
 
 const ACCENT_BLUE = "#1B2A4A";
 const ACCENT_RED = "#E63946";
@@ -281,130 +266,28 @@ export default function QuoteEditorPage() {
 
   return (
     <div className="p-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => safeNavigate("/cotizaciones")}
-          className="gap-2 -ml-2 text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Cotizaciones
-        </Button>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleDownloadPDF}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Descargar PDF
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={createQuote.isPending || updateQuote.isPending}
-            className="gap-2"
-          >
-            <Save className="h-4 w-4" />
-            {createQuote.isPending || updateQuote.isPending
-              ? "Guardando..."
-              : "Guardar cotización"}
-          </Button>
-        </div>
-      </div>
+      <QuoteHeader
+        onBack={() => safeNavigate("/cotizaciones")}
+        onDownloadPdf={handleDownloadPDF}
+        onSave={handleSave}
+        saving={createQuote.isPending || updateQuote.isPending}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* ===== LEFT — FORM ===== */}
         <div className="space-y-6" onChange={markDirty}>
-          {/* Quote metadata */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Datos de la cotización
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Número</Label>
-                <Input
-                  value={quoteNumber || (isEditing ? "" : "Auto-generado")}
-                  onChange={(e) => setQuoteNumber(e.target.value)}
-                  placeholder="Auto-generado al guardar"
-                  disabled={!isEditing}
-                  className={!isEditing ? "text-muted-foreground" : ""}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                    >
-                      {statusLabels[status]}
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    {(Object.keys(statusLabels) as QuoteStatus[])
-                      .filter((s) => s !== "archived")
-                      .map((s) => (
-                        <DropdownMenuItem key={s} onClick={() => setStatus(s)}>
-                          {statusLabels[s]}
-                        </DropdownMenuItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Válida por (días)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={validDays}
-                  onChange={(e) => setValidDays(parseInt(e.target.value) || 30)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Vincular a proyecto</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between truncate"
-                    >
-                      <span className="truncate">
-                        {projectId
-                          ? (projects?.find((p) => p.id === projectId)?.name ??
-                            "Proyecto")
-                          : "Sin proyecto"}
-                      </span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56">
-                    <DropdownMenuItem onClick={() => setProjectId("")}>
-                      Sin proyecto
-                    </DropdownMenuItem>
-                    <Separator />
-                    {projects
-                      ?.filter((p) => p.status !== "archived")
-                      .map((p) => (
-                        <DropdownMenuItem
-                          key={p.id}
-                          onClick={() => setProjectId(p.id)}
-                        >
-                          {p.name}
-                        </DropdownMenuItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
+          <QuoteProjectLink
+            quoteNumber={quoteNumber}
+            onQuoteNumberChange={setQuoteNumber}
+            isEditing={isEditing}
+            status={status}
+            onStatusChange={setStatus}
+            validDays={validDays}
+            onValidDaysChange={setValidDays}
+            projectId={projectId}
+            onProjectIdChange={setProjectId}
+            projects={projects}
+          />
 
           <QuoteClientSection
             clientName={clientName}
