@@ -1,16 +1,11 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   Save,
   Download,
   ArrowLeft,
   FileText,
-  Building2,
-  User,
-  Phone,
-  Mail,
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +23,7 @@ import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDi
 import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
 import { QuoteTaxConfiguration } from "@/components/quote-editor/QuoteTaxConfiguration";
 import { QuoteDiscountControl } from "@/components/quote-editor/QuoteDiscountControl";
+import { QuoteClientSection } from "@/components/quote-editor/QuoteClientSection";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -410,99 +406,20 @@ export default function QuoteEditorPage() {
             </div>
           </div>
 
-          {/* Client data */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Datos del cliente
-            </h2>
-            <div className="space-y-2">
-              <Label>
-                Nombre <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Nombre del cliente"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="pl-9"
-                  maxLength={100}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="email@ejemplo.com"
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                    className="pl-9"
-                    maxLength={100}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Teléfono</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="tel"
-                    placeholder="+57 300 000 0000"
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                    className="pl-9"
-                    maxLength={20}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-              <input
-                type="checkbox"
-                id="is-company"
-                checked={clientIsCompany}
-                onChange={(e) => setClientIsCompany(e.target.checked)}
-                className="h-4 w-4 rounded accent-primary"
-              />
-              <label
-                htmlFor="is-company"
-                className="text-sm font-medium cursor-pointer flex items-center gap-2"
-              >
-                <Building2 className="h-4 w-4" />
-                Es empresa
-              </label>
-            </div>
-            {clientIsCompany && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-2 gap-4"
-              >
-                <div className="space-y-2">
-                  <Label>Nombre empresa</Label>
-                  <Input
-                    placeholder="Empresa S.A.S."
-                    value={clientCompany}
-                    onChange={(e) => setClientCompany(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>NIT</Label>
-                  <Input
-                    placeholder="900.000.000-0"
-                    value={clientNit}
-                    onChange={(e) => setClientNit(e.target.value)}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </div>
+          <QuoteClientSection
+            clientName={clientName}
+            onClientNameChange={setClientName}
+            clientEmail={clientEmail}
+            onClientEmailChange={setClientEmail}
+            clientPhone={clientPhone}
+            onClientPhoneChange={setClientPhone}
+            clientIsCompany={clientIsCompany}
+            onClientIsCompanyChange={setClientIsCompany}
+            clientCompany={clientCompany}
+            onClientCompanyChange={setClientCompany}
+            clientNit={clientNit}
+            onClientNitChange={setClientNit}
+          />
 
           <QuoteItemsTable
             items={items}
