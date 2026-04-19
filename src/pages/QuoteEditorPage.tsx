@@ -3,12 +3,9 @@ import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Plus,
-  Trash2,
   Save,
   Download,
   ArrowLeft,
-  GripVertical,
   FileText,
   Building2,
   User,
@@ -28,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UnsavedChangesDialog } from "@/components/quote-editor/UnsavedChangesDialog";
+import { QuoteItemsTable } from "@/components/quote-editor/QuoteItemsTable";
 import { useAuthStore } from "@/store/authStore";
 import { useServices } from "@/hooks/useServices";
 import { useProjects } from "@/hooks/useProjects";
@@ -504,123 +502,14 @@ export default function QuoteEditorPage() {
             )}
           </div>
 
-          {/* Items */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Ítems</h2>
-              {services && services.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 h-8 text-xs"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Agregar servicio
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    {services.map((s) => (
-                      <DropdownMenuItem
-                        key={s.id}
-                        onClick={() => addServiceToItems(s)}
-                      >
-                        <span className="flex-1 truncate">{s.name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {formatCOP(s.price)}
-                        </span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2">
-              <div className="col-span-5">Descripción</div>
-              <div className="col-span-2 text-center">Cant.</div>
-              <div className="col-span-3 text-right">Precio unit.</div>
-              <div className="col-span-1 text-right">Total</div>
-              <div className="col-span-1" />
-            </div>
-
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div
-                  key={item.tempId}
-                  className="grid grid-cols-12 gap-2 items-center"
-                >
-                  <div className="col-span-1 flex justify-center">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="col-span-4">
-                    <Input
-                      placeholder="Descripción del ítem"
-                      value={item.description}
-                      onChange={(e) =>
-                        updateItem(item.tempId, "description", e.target.value)
-                      }
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(
-                          item.tempId,
-                          "quantity",
-                          Math.max(1, parseFloat(e.target.value) || 1),
-                        )
-                      }
-                      className="h-8 text-sm text-center"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={item.unit_price}
-                      onChange={(e) =>
-                        updateItem(
-                          item.tempId,
-                          "unit_price",
-                          Math.max(0, parseFloat(e.target.value) || 0),
-                        )
-                      }
-                      className="h-8 text-sm text-right"
-                    />
-                  </div>
-                  <div className="col-span-1 text-right text-xs font-medium text-foreground">
-                    {formatCOP(item.quantity * item.unit_price)}
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <button
-                      onClick={() => removeItem(item.tempId)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addItem}
-              className="w-full gap-2 border-dashed"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Agregar ítem
-            </Button>
-          </div>
+          <QuoteItemsTable
+            items={items}
+            onAdd={addItem}
+            onRemove={removeItem}
+            onUpdate={updateItem}
+            services={services}
+            onAddService={addServiceToItems}
+          />
 
           {/* Taxes & discount */}
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
