@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatCOP, formatDate } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
-import type { Quote } from "@/types";
+import type { Quote, QuoteStatus } from "@/types";
 import {
   QUOTE_STATUS_LABELS as statusLabels,
   QUOTE_STATUS_VARIANTS as statusVariants,
@@ -88,7 +88,7 @@ export default function QuotesPage() {
 
   const { data: paginatedData, isLoading } = usePaginatedQuotes({
     search,
-    status: statusFilter as any,
+    status: statusFilter as QuoteStatus | "all",
     showArchived,
     page,
   });

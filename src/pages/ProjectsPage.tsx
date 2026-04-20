@@ -41,7 +41,7 @@ import { BatchConfirmDialog } from "@/components/projects-list/BatchConfirmDialo
 import { DeleteProjectDialog } from "@/components/projects-list/DeleteProjectDialog";
 import { ArchiveProjectDialog } from "@/components/projects-list/ArchiveProjectDialog";
 import { DuplicateProjectDialog } from "@/components/projects-list/DuplicateProjectDialog";
-import type { Project } from "@/types";
+import type { Project, ProjectStatus } from "@/types";
 
 export default function ProjectsPage() {
   usePageTitle("Proyectos");
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
 
   const { data: paginatedData, isLoading } = usePaginatedProjects({
     search: filters.search,
-    status: filters.statusFilter as any,
+    status: filters.statusFilter as ProjectStatus | "all",
     clientId: filters.clientFilter,
     sortBy: filters.sortBy,
     showArchived: filters.showArchived,

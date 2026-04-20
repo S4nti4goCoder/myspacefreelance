@@ -45,11 +45,15 @@ interface DuplicateProjectInput {
   taskIds: string[];
 }
 
+type ProjectRow = Omit<Project, "client"> & {
+  project_clients?: Array<{ client: Profile | null }> | null;
+};
+
 function mapProjectRows(data: unknown[]) {
-  return (data ?? []).map((row: any) => {
-    const clientRow = row.project_clients?.[0];
-    const client = (clientRow?.client as Profile) ?? null;
-    const { project_clients: _pc, ...rest } = row;
+  return (data ?? []).map((row) => {
+    const r = row as ProjectRow;
+    const client = r.project_clients?.[0]?.client ?? null;
+    const { project_clients: _pc, ...rest } = r;
     return { ...rest, client } as Project & { client: Profile | null };
   });
 }
