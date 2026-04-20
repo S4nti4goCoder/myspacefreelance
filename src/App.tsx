@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useRef, lazy, Suspense } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, lazy, Suspense, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import Layout from "@/components/shared/Layout";
+import ErrorBoundary from "@/components/shared/ErrorBoundary";
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
@@ -24,6 +25,13 @@ const QuoteViewPage = lazy(() => import("@/pages/QuoteViewPage"));
 const CollaboratorsPage = lazy(() => import("@/pages/CollaboratorsPage"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
 const TermsPage = lazy(() => import("@/pages/TermsPage"));
+
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  return (
+    <ErrorBoundary resetKeys={[location.pathname]}>{children}</ErrorBoundary>
+  );
+}
 
 function LoadingScreen() {
   return (
@@ -155,45 +163,53 @@ export default function App() {
           element={
             <ProtectedPanelRoute>
               <Layout>
-                <Routes>
-                {/* Rutas compartidas — freelancer y colaborador */}
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/proyectos" element={<ProjectsPage />} />
-                <Route path="/proyectos/:id" element={<ProjectDetailPage />} />
-                <Route path="/perfil" element={<ProfilePage />} />
-                <Route path="/reportes" element={<ReportsPage />} />
-                <Route path="/servicios" element={<ServicesPage />} />
-                <Route path="/cotizaciones" element={<QuotesPage />} />
-                <Route
-                  path="/cotizaciones/nueva"
-                  element={<QuoteEditorPage />}
-                />
-                <Route
-                  path="/cotizaciones/:id/editar"
-                  element={<QuoteEditorPage />}
-                />
-                <Route path="/cotizaciones/:id" element={<QuoteViewPage />} />
+                <RouteErrorBoundary>
+                  <Routes>
+                    {/* Rutas compartidas — freelancer y colaborador */}
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/proyectos" element={<ProjectsPage />} />
+                    <Route
+                      path="/proyectos/:id"
+                      element={<ProjectDetailPage />}
+                    />
+                    <Route path="/perfil" element={<ProfilePage />} />
+                    <Route path="/reportes" element={<ReportsPage />} />
+                    <Route path="/servicios" element={<ServicesPage />} />
+                    <Route path="/cotizaciones" element={<QuotesPage />} />
+                    <Route
+                      path="/cotizaciones/nueva"
+                      element={<QuoteEditorPage />}
+                    />
+                    <Route
+                      path="/cotizaciones/:id/editar"
+                      element={<QuoteEditorPage />}
+                    />
+                    <Route
+                      path="/cotizaciones/:id"
+                      element={<QuoteViewPage />}
+                    />
 
-                {/* Cuentas — freelancer siempre, colaborador si tiene permiso */}
-                <Route
-                  path="/cuentas-clientes"
-                  element={<ClientAccountsPage />}
-                />
+                    {/* Cuentas — freelancer siempre, colaborador si tiene permiso */}
+                    <Route
+                      path="/cuentas-clientes"
+                      element={<ClientAccountsPage />}
+                    />
 
-                {/* Exclusivo del freelancer */}
-                <Route
-                  path="/colaboradores"
-                  element={
-                    <FreelancerOnlyRoute>
-                      <CollaboratorsPage />
-                    </FreelancerOnlyRoute>
-                  }
-                />
+                    {/* Exclusivo del freelancer */}
+                    <Route
+                      path="/colaboradores"
+                      element={
+                        <FreelancerOnlyRoute>
+                          <CollaboratorsPage />
+                        </FreelancerOnlyRoute>
+                      }
+                    />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Layout>
-          </ProtectedPanelRoute>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </RouteErrorBoundary>
+              </Layout>
+            </ProtectedPanelRoute>
         }
       />
 
@@ -201,14 +217,16 @@ export default function App() {
         path="/cliente/*"
         element={
           <ProtectedClientRoute>
-            <Routes>
-              <Route path="dashboard" element={<ClientDashboardPage />} />
-              <Route path="proyecto/:id" element={<ClientProjectPage />} />
-              <Route
-                path="*"
-                element={<Navigate to="/cliente/dashboard" replace />}
-              />
-            </Routes>
+            <RouteErrorBoundary>
+              <Routes>
+                <Route path="dashboard" element={<ClientDashboardPage />} />
+                <Route path="proyecto/:id" element={<ClientProjectPage />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/cliente/dashboard" replace />}
+                />
+              </Routes>
+            </RouteErrorBoundary>
           </ProtectedClientRoute>
         }
       />

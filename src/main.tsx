@@ -24,7 +24,7 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <TooltipProvider>
-            <ErrorBoundary>
+            <ErrorBoundary fullScreen>
               <App />
             </ErrorBoundary>
             <Toaster richColors position="top-right" />
