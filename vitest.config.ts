@@ -15,6 +15,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    pool: "forks",
     exclude: ["node_modules", "dist"],
     coverage: {
       provider: "v8",
