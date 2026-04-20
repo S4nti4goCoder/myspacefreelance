@@ -96,8 +96,8 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card">
+    <div className="h-screen overflow-hidden bg-background flex">
+      <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card overflow-y-auto">
         <SidebarContent onLogout={handleLogout} />
       </aside>
 
