@@ -87,14 +87,17 @@ export default function ProjectCalendar({ projects }: ProjectCalendarProps) {
   const todayKey = toDateKey(today);
 
   // Build weeks array: each week is an array of 7 cells (day number or null)
-  const weeks: (number | null)[][] = [];
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
+  const weeks = useMemo<(number | null)[][]>(() => {
+    const result: (number | null)[][] = [];
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    for (let i = 0; i < cells.length; i += 7) {
+      result.push(cells.slice(i, i + 7));
+    }
+    return result;
+  }, [firstDay, daysInMonth]);
 
   // Assign color to each project (stable based on index)
   const projectColorMap = useMemo(() => {

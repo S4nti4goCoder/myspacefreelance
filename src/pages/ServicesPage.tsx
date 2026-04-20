@@ -21,8 +21,6 @@ import {
 import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,14 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { formatCOP } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
+import { ServiceForm, type ServiceFormData } from "@/components/shared/ServiceForm";
 import type { Service } from "@/types";
-
-interface ServiceFormData {
-  name: string;
-  description: string;
-  price: string;
-  category: string;
-}
 
 const emptyForm: ServiceFormData = {
   name: "",
@@ -50,6 +42,8 @@ const emptyForm: ServiceFormData = {
   price: "",
   category: "",
 };
+
+const EMPTY_SERVICES: Service[] = [];
 
 export default function ServicesPage() {
   usePageTitle("Servicios");
@@ -76,7 +70,7 @@ export default function ServicesPage() {
   const { data: paginatedData, isLoading } = usePaginatedServices({ search, page });
   const { data: allServices } = useServices();
 
-  const filtered = paginatedData?.services ?? [];
+  const filtered = paginatedData?.services ?? EMPTY_SERVICES;
   const totalPages = paginatedData?.totalPages ?? 1;
   const totalItems = paginatedData?.total ?? 0;
   const pageSize = paginatedData?.pageSize ?? 12;
@@ -155,62 +149,6 @@ export default function ServicesPage() {
       onSettled: () => setDeletingService(null),
     });
   };
-
-  const ServiceForm = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>
-          Nombre <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          placeholder="Ej: Diseño UI/UX"
-          value={form.name}
-          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Descripción</Label>
-        <Textarea
-          placeholder="Descripción del servicio..."
-          value={form.description}
-          onChange={(e) =>
-            setForm((p) => ({ ...p, description: e.target.value }))
-          }
-          rows={2}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>
-            Precio base (COP) <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            type="number"
-            placeholder="0"
-            min="0"
-            value={form.price}
-            onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Categoría</Label>
-          <Input
-            placeholder="Ej: Diseño, Desarrollo..."
-            value={form.category}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, category: e.target.value }))
-            }
-            list="categories-list"
-          />
-          <datalist id="categories-list">
-            {categories.map((cat) => (
-              <option key={cat} value={cat} />
-            ))}
-          </datalist>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="p-6 space-y-6">
@@ -384,7 +322,7 @@ export default function ServicesPage() {
           <DialogHeader>
             <DialogTitle>Nuevo servicio</DialogTitle>
           </DialogHeader>
-          <ServiceForm />
+          <ServiceForm form={form} setForm={setForm} categories={categories} />
           <DialogFooter>
             <Button
               variant="outline"
@@ -418,7 +356,7 @@ export default function ServicesPage() {
           <DialogHeader>
             <DialogTitle>Editar servicio</DialogTitle>
           </DialogHeader>
-          <ServiceForm />
+          <ServiceForm form={form} setForm={setForm} categories={categories} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingService(null)}>
               Cancelar

@@ -14,16 +14,6 @@ export function useQuoteTotals(
 ): QuoteTotals {
   return useMemo(
     () => calculateQuoteTotals(items, discount, taxes),
-    [
-      items,
-      discount.type,
-      discount.value,
-      taxes.applyIva,
-      taxes.ivaRate,
-      taxes.applyRetefuente,
-      taxes.retefuenteRate,
-      taxes.applyReteica,
-      taxes.reteicaRate,
-    ],
+    [items, discount, taxes],
   );
 }
