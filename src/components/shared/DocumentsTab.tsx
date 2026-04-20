@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   Plus,
   FileText,
@@ -30,7 +30,7 @@ import {
   useDeleteDocument,
 } from "@/hooks/useDocuments";
 import type { Document } from "@/types";
-import MDEditor from "@uiw/react-md-editor";
+const MDEditor = lazy(() => import("@uiw/react-md-editor"));
 import { useThemeStore } from "@/store/themeStore";
 
 interface DocumentsTabProps {
@@ -245,12 +245,18 @@ export default function DocumentsTab({ projectId }: DocumentsTabProps) {
             {/* Doc content */}
             {isEditing ? (
               <div className="flex-1 flex flex-col p-4 gap-3">
-                <MDEditor
-                  value={editContent}
-                  onChange={(val) => setEditContent(val ?? "")}
-                  height={400}
-                  data-color-mode={resolvedTheme}
-                />
+                <Suspense
+                  fallback={
+                    <div className="h-100 bg-muted animate-pulse rounded-md" />
+                  }
+                >
+                  <MDEditor
+                    value={editContent}
+                    onChange={(val) => setEditContent(val ?? "")}
+                    height={400}
+                    data-color-mode={resolvedTheme}
+                  />
+                </Suspense>
               </div>
             ) : (
               <ScrollArea className="flex-1 p-4">

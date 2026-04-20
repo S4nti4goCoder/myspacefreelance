@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -27,11 +27,15 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import KanbanBoard from "@/components/shared/KanbanBoard";
-import DocumentsTab from "@/components/shared/DocumentsTab";
-import AttachmentsTab from "@/components/shared/AttachmentsTab";
-import PaymentsTab from "@/components/shared/PaymentsTab";
-import CommentsTab from "@/components/shared/CommentsTab";
+const KanbanBoard = lazy(() => import("@/components/shared/KanbanBoard"));
+const DocumentsTab = lazy(() => import("@/components/shared/DocumentsTab"));
+const AttachmentsTab = lazy(() => import("@/components/shared/AttachmentsTab"));
+const PaymentsTab = lazy(() => import("@/components/shared/PaymentsTab"));
+const CommentsTab = lazy(() => import("@/components/shared/CommentsTab"));
+
+const TabFallback = () => (
+  <div className="h-64 bg-muted animate-pulse rounded-xl" />
+);
 import { formatDate, formatCOP } from "@/lib/utils";
 import {
   PROJECT_STATUS_LABELS as statusLabels,
@@ -248,31 +252,41 @@ export default function ProjectDetailPage() {
 
           {canViewTasks && (
             <TabsContent value="tareas">
-              <KanbanBoard projectId={project.id} />
+              <Suspense fallback={<TabFallback />}>
+                <KanbanBoard projectId={project.id} />
+              </Suspense>
             </TabsContent>
           )}
 
           {canViewDocuments && (
             <TabsContent value="documentos">
-              <DocumentsTab projectId={project.id} />
+              <Suspense fallback={<TabFallback />}>
+                <DocumentsTab projectId={project.id} />
+              </Suspense>
             </TabsContent>
           )}
 
           {canViewAttachments && (
             <TabsContent value="archivos">
-              <AttachmentsTab projectId={project.id} />
+              <Suspense fallback={<TabFallback />}>
+                <AttachmentsTab projectId={project.id} />
+              </Suspense>
             </TabsContent>
           )}
 
           {canViewPayments && (
             <TabsContent value="pagos">
-              <PaymentsTab projectId={project.id} />
+              <Suspense fallback={<TabFallback />}>
+                <PaymentsTab projectId={project.id} />
+              </Suspense>
             </TabsContent>
           )}
 
           {canViewComments && (
             <TabsContent value="comentarios">
-              <CommentsTab projectId={project.id} />
+              <Suspense fallback={<TabFallback />}>
+                <CommentsTab projectId={project.id} />
+              </Suspense>
             </TabsContent>
           )}
         </Tabs>
