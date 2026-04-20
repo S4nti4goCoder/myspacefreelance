@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -142,10 +142,11 @@ export default function ClientAccountsPage() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (prevSearch !== search) {
+    setPrevSearch(search);
     setPage(1);
-  }, [search]);
+  }
 
   const { data: paginatedData, isLoading } = usePaginatedClients({ search, page });
   const clients = paginatedData?.clients ?? [];

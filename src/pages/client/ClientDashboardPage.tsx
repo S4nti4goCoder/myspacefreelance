@@ -92,12 +92,6 @@ export default function ClientDashboardPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
-    if (profile && profile.role === "client" && !profile.password_changed) {
-      setIsPasswordOpen(true);
-    }
-  }, [profile]);
-
-  useEffect(() => {
     if (!user) return;
     async function loadProjects() {
       setIsLoading(true);
@@ -396,7 +390,7 @@ export default function ClientDashboardPage() {
       )}
 
       <Dialog
-        open={isPasswordOpen}
+        open={isPasswordOpen || isPasswordRequired}
         onOpenChange={(open) => {
           if (!isPasswordRequired) setIsPasswordOpen(open);
         }}

@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -66,15 +66,12 @@ export default function ProjectsPage() {
     null,
   );
 
-  useEffect(() => {
+  const filtersKey = `${filters.search}|${filters.statusFilter}|${filters.clientFilter}|${filters.sortBy}|${filters.showArchived}`;
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
     setPage(1);
-  }, [
-    filters.search,
-    filters.statusFilter,
-    filters.clientFilter,
-    filters.sortBy,
-    filters.showArchived,
-  ]);
+  }
 
   const { data: paginatedData, isLoading } = usePaginatedProjects({
     search: filters.search,

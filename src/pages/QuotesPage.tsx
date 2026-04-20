@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -79,10 +79,12 @@ export default function QuotesPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [deletingQuote, setDeletingQuote] = useState<Quote | null>(null);
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
+  const filtersKey = `${search}|${statusFilter}|${showArchived}`;
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
     setPage(1);
-  }, [search, statusFilter, showArchived]);
+  }
 
   const { data: paginatedData, isLoading } = usePaginatedQuotes({
     search,

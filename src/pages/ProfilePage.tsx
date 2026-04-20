@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -72,7 +72,9 @@ export default function ProfilePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  useEffect(() => {
+  const [syncedProfile, setSyncedProfile] = useState(profile);
+  if (syncedProfile !== profile) {
+    setSyncedProfile(profile);
     setName(profile?.name ?? "");
     setPhone(profile?.phone ?? "");
     setNit(profile?.nit ?? "");
@@ -86,7 +88,7 @@ export default function ProfilePage() {
     setIvaRate(profile?.iva_rate?.toString() ?? "19");
     setRetefuenteRate(profile?.retefuente_rate?.toString() ?? "10");
     setReteicaRate(profile?.reteica_rate?.toString() ?? "0.414");
-  }, [profile]);
+  }
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {

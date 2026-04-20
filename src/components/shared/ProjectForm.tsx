@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,17 +54,6 @@ export default function ProjectForm({
   const [budget, setBudget] = useState(initialData?.budget?.toString() ?? "");
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-
-  useEffect(() => {
-    setName(initialData?.name ?? "");
-    setDescription(initialData?.description ?? "");
-    setClientId(initialData?.clientId ?? "");
-    setStartDate(initialData?.start_date ?? "");
-    setDueDate(initialData?.due_date ?? "");
-    setStatus(initialData?.status ?? "todo");
-    setBudget(initialData?.budget?.toString() ?? "");
-    setTags(initialData?.tags ?? []);
-  }, [initialData]);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {

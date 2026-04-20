@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -67,10 +67,11 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [form, setForm] = useState<ServiceFormData>(emptyForm);
-
-  useEffect(() => {
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (prevSearch !== search) {
+    setPrevSearch(search);
     setPage(1);
-  }, [search]);
+  }
 
   const { data: paginatedData, isLoading } = usePaginatedServices({ search, page });
   const { data: allServices } = useServices();

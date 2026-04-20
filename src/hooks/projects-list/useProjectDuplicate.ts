@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useDuplicateProject } from "@/hooks/useProjects";
@@ -27,16 +27,21 @@ export function useProjectDuplicate() {
     enabled: !!duplicatingProject,
   });
 
-  useEffect(() => {
-    if (!duplicatingProject) return;
-    setDuplicateName(`Copia de ${duplicatingProject.name}`);
-  }, [duplicatingProject]);
+  const [prevProject, setPrevProject] = useState(duplicatingProject);
+  if (prevProject !== duplicatingProject) {
+    setPrevProject(duplicatingProject);
+    if (duplicatingProject) {
+      setDuplicateName(`Copia de ${duplicatingProject.name}`);
+    }
+  }
 
-  useEffect(() => {
+  const [prevTasks, setPrevTasks] = useState(tasks);
+  if (prevTasks !== tasks) {
+    setPrevTasks(tasks);
     if (tasks.length > 0) {
       setSelectedTaskIds(new Set(tasks.map((t) => t.id)));
     }
-  }, [tasks]);
+  }
 
   const allSelected = useMemo(
     () => tasks.length > 0 && selectedTaskIds.size === tasks.length,

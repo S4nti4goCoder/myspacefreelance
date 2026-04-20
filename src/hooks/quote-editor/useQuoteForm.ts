@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Profile, Quote, QuoteStatus } from "@/types";
 import type { ItemRow } from "./useQuoteItems";
 
@@ -90,7 +90,13 @@ export function useQuoteForm(
   );
   const [discountValue, setDiscountValue] = useState(0);
 
-  useEffect(() => {
+  const [syncKey, setSyncKey] = useState({ profile, existingQuote, isEditing });
+  if (
+    syncKey.profile !== profile ||
+    syncKey.existingQuote !== existingQuote ||
+    syncKey.isEditing !== isEditing
+  ) {
+    setSyncKey({ profile, existingQuote, isEditing });
     if (isEditing && existingQuote) {
       setQuoteNumber(existingQuote.quote_number);
       setStatus(existingQuote.status);
@@ -115,9 +121,7 @@ export function useQuoteForm(
       if (existingQuote.items && existingQuote.items.length > 0) {
         setItems(existingQuote.items.map((i) => ({ ...i, tempId: i.id })));
       }
-      return;
-    }
-    if (profile) {
+    } else if (profile) {
       setApplyIva(profile.apply_iva ?? false);
       setApplyRetefuente(profile.apply_retefuente ?? false);
       setApplyReteica(profile.apply_reteica ?? false);
@@ -125,7 +129,7 @@ export function useQuoteForm(
       setRetefuenteRate(profile.retefuente_rate ?? 10);
       setReteicaRate(profile.reteica_rate ?? 0.414);
     }
-  }, [profile, existingQuote, isEditing]);
+  }
 
   return {
     quoteNumber,
