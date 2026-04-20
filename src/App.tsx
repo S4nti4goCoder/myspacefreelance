@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, lazy, Suspense, type ReactNode } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import Layout from "@/components/shared/Layout";
@@ -123,9 +124,15 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
+        const { isLoggingOut, user } = useAuthStore.getState();
+        const wasSessionExpired = !isLoggingOut && !!user;
         useAuthStore.getState().setUser(null);
         useAuthStore.getState().setProfile(null);
         useAuthStore.getState().setIsLoading(false);
+        useAuthStore.getState().setIsLoggingOut(false);
+        if (wasSessionExpired) {
+          toast.error("Tu sesión ha expirado. Inicia sesión de nuevo.");
+        }
         return;
       }
 

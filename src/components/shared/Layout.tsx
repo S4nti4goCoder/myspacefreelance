@@ -89,6 +89,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    useAuthStore.getState().setIsLoggingOut(true);
     await supabase.auth.signOut();
     setUser(null);
     toast.success("Sesión cerrada");
