@@ -9,11 +9,26 @@ import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import App from "./App";
 import "./index.css";
 
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  const err = error as { status?: number; code?: string };
+  // Auth/permission errors — retrying won't help
+  if (err.status === 401 || err.status === 403) return false;
+  // Other 4xx client errors (bad request, not found, conflict, etc.)
+  if (err.status && err.status >= 400 && err.status < 500) return false;
+  // Network errors / 5xx — retry up to 2 times (3 attempts total)
+  return failureCount < 2;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      retry: 1,
+      retry: shouldRetry,
+      retryDelay: (attemptIndex) =>
+        Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });
