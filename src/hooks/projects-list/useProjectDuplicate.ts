@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { useDuplicateProject } from "@/hooks/useProjects";
 import type { Project, Task } from "@/types";
 
+const EMPTY_TASKS: Task[] = [];
+
 export function useProjectDuplicate() {
   const [duplicatingProject, setDuplicatingProject] = useState<Project | null>(
     null,
@@ -14,7 +16,7 @@ export function useProjectDuplicate() {
   );
   const duplicateMutation = useDuplicateProject();
 
-  const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
+  const { data, isLoading: isLoadingTasks } = useQuery({
     queryKey: ["project-tasks", duplicatingProject?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -26,6 +28,7 @@ export function useProjectDuplicate() {
     },
     enabled: !!duplicatingProject,
   });
+  const tasks = data ?? EMPTY_TASKS;
 
   const [prevProject, setPrevProject] = useState(duplicatingProject);
   if (prevProject !== duplicatingProject) {
