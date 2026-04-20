@@ -1,5 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -138,6 +138,7 @@ const STATUS_CHART_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
+  const [now] = useState(() => Date.now());
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: fetchDashboardData,
@@ -416,7 +417,7 @@ export default function DashboardPage() {
               ) : (
                 upcomingProjects.map((project) => {
                   const daysLeft = Math.ceil(
-                    (new Date(project.due_date!).getTime() - Date.now()) /
+                    (new Date(project.due_date!).getTime() - now) /
                       (1000 * 60 * 60 * 24),
                   );
                   const isUrgent = daysLeft <= 3;
