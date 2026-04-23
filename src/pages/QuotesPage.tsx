@@ -412,6 +412,7 @@ export default function QuotesPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  aria-label="Eliminar cotización"
                                   onClick={() => setDeletingQuote(quote)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />

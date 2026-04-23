@@ -270,6 +270,7 @@ export default function ServicesPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7"
+                                aria-label="Editar servicio"
                                 onClick={() => handleOpenEdit(service)}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -280,6 +281,7 @@ export default function ServicesPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                aria-label="Eliminar servicio"
                                 onClick={() => setDeletingService(service)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />

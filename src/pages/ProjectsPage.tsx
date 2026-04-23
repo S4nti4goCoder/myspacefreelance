@@ -242,6 +242,8 @@ export default function ProjectsPage() {
                 className="h-9 w-9 rounded-none"
                 onClick={() => setViewMode("grid")}
                 title="Vista cuadrícula"
+                aria-label="Vista cuadrícula"
+                aria-pressed={viewMode === "grid"}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -251,6 +253,8 @@ export default function ProjectsPage() {
                 className="h-9 w-9 rounded-none"
                 onClick={() => setViewMode("calendar")}
                 title="Vista calendario"
+                aria-label="Vista calendario"
+                aria-pressed={viewMode === "calendar"}
               >
                 <CalendarDays className="h-4 w-4" />
               </Button>

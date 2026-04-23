@@ -559,6 +559,7 @@ export default function ClientAccountsPage() {
                   type="button"
                   variant="outline"
                   size="icon"
+                  aria-label="Generar nueva contraseña"
                   onClick={() =>
                     setCreateForm((p) => ({
                       ...p,
@@ -732,6 +733,7 @@ export default function ClientAccountsPage() {
                   type="button"
                   variant="outline"
                   size="icon"
+                  aria-label="Generar nueva contraseña"
                   onClick={() => setNewResetPassword(generatePassword())}
                 >
                   <RefreshCw className="h-4 w-4" />

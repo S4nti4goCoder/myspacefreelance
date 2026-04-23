@@ -30,6 +30,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           size="icon-xs"
           onClick={() => onPageChange(1)}
           disabled={page === 1}
+          aria-label="Primera página"
         >
           <ChevronsLeft className="h-3.5 w-3.5" />
         </Button>
@@ -38,6 +39,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           size="icon-xs"
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
+          aria-label="Página anterior"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
@@ -52,6 +54,8 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
               variant={p === page ? "default" : "outline"}
               size="icon-xs"
               onClick={() => onPageChange(p as number)}
+              aria-label={`Ir a la página ${p}`}
+              aria-current={p === page ? "page" : undefined}
             >
               {p}
             </Button>
@@ -62,6 +66,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           size="icon-xs"
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
+          aria-label="Página siguiente"
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </Button>
@@ -70,6 +75,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           size="icon-xs"
           onClick={() => onPageChange(totalPages)}
           disabled={page === totalPages}
+          aria-label="Última página"
         >
           <ChevronsRight className="h-3.5 w-3.5" />
         </Button>

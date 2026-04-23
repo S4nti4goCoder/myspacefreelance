@@ -177,13 +177,13 @@ export default function ProjectCalendar({ projects }: ProjectCalendarProps) {
       {/* Calendar header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth} aria-label="Mes anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-semibold text-foreground min-w-44 text-center">
             {MONTH_NAMES[currentMonth]} {currentYear}
           </h2>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth} aria-label="Mes siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
