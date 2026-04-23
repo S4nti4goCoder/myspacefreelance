@@ -72,6 +72,16 @@ export function downloadCSV(filename: string, headers: string[], rows: string[][
   URL.revokeObjectURL(url);
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email.trim());
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

@@ -47,6 +47,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { isValidEmail, normalizeEmail } from "@/lib/utils";
 import type { Profile } from "@/types";
 
 function generatePassword(): string {
@@ -214,6 +215,10 @@ export default function ClientAccountsPage() {
       !createForm.password
     )
       return;
+    if (!isValidEmail(createForm.email)) {
+      toast.error("El correo electrónico no tiene un formato válido");
+      return;
+    }
     if (createForm.password.length < 8) {
       toast.error("La contraseña debe tener al menos 8 caracteres");
       return;
@@ -221,7 +226,7 @@ export default function ClientAccountsPage() {
     registerClient.mutate(
       {
         name: createForm.name.trim(),
-        email: createForm.email.trim(),
+        email: normalizeEmail(createForm.email),
         password: createForm.password,
         phone: createForm.phone.trim() || undefined,
         notes: createForm.notes.trim() || undefined,

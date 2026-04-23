@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +73,11 @@ export default function ProjectForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    if (startDate && dueDate && dueDate < startDate) {
+      toast.error("La fecha de entrega no puede ser anterior a la de inicio");
+      return;
+    }
 
     onSubmit({
       name: name.trim(),
@@ -176,6 +182,7 @@ export default function ProjectForm({
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             disabled={isLoading}
+            min={startDate || undefined}
           />
         </div>
       </div>
