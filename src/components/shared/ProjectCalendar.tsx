@@ -301,7 +301,7 @@ export default function ProjectCalendar({ projects }: ProjectCalendarProps) {
                   <button
                     key={project.id}
                     onClick={() => navigate(`/proyectos/${project.id}`)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors text-left"
+                    className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors text-left"
                   >
                     <div className={`w-3 h-3 rounded-sm shrink-0 border ${color.bg} ${color.border}`} />
                     <div className="min-w-0 flex-1">

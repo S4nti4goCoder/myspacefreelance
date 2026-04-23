@@ -211,7 +211,7 @@ export default function NotificationCenter({
                       e.stopPropagation();
                       deleteNotification.mutate(notification.id);
                     }}
-                    className="shrink-0 self-center p-1 rounded-md hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    className="cursor-pointer shrink-0 self-center p-1 rounded-md hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                     aria-label="Eliminar notificación"
                   >
                     <X className="h-3.5 w-3.5" />

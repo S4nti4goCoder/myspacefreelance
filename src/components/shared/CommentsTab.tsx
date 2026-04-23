@@ -151,7 +151,7 @@ export default function CommentsTab({ projectId }: CommentsTabProps) {
                     {isFromMe && (
                       <button
                         onClick={() => setDeletingComment(comment)}
-                        className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-destructive"
+                        className="cursor-pointer absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-destructive"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>

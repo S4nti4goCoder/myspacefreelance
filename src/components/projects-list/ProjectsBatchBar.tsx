@@ -45,7 +45,7 @@ export function ProjectsBatchBar({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleAll}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="cursor-pointer text-muted-foreground hover:text-primary transition-colors"
             >
               {count === totalInPage ? (
                 <CheckSquare className="h-4 w-4 text-primary" />

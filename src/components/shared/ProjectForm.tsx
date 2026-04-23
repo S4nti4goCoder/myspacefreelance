@@ -222,7 +222,7 @@ export default function ProjectForm({
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-destructive"
+                  className="cursor-pointer hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
                 </button>

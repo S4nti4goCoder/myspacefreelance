@@ -128,7 +128,7 @@ export function QuoteItemsTable({
                 type="button"
                 aria-label="Eliminar ítem"
                 onClick={() => onRemove(item.tempId)}
-                className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+                className="cursor-pointer text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
                 disabled={items.length === 1}
               >
                 <Trash2 className="h-3.5 w-3.5" />

@@ -86,7 +86,7 @@ export default function GlobalSearch() {
               setQuery("");
               setIsOpen(false);
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -127,7 +127,7 @@ export default function GlobalSearch() {
                       <button
                         key={project.id}
                         onClick={() => handleSelect(`/proyectos/${project.id}`)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
+                        className="cursor-pointer w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
                       >
                         <FolderKanban className="h-4 w-4 text-blue-500 shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -160,7 +160,7 @@ export default function GlobalSearch() {
                         onClick={() =>
                           handleSelect(`/proyectos/${task.project_id}`)
                         }
-                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
+                        className="cursor-pointer w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
                       >
                         <CheckSquare className="h-4 w-4 text-green-500 shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -191,7 +191,7 @@ export default function GlobalSearch() {
                         onClick={() =>
                           handleSelect(`/proyectos/${attachment.project_id}`)
                         }
-                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
+                        className="cursor-pointer w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
                       >
                         <Paperclip className="h-4 w-4 text-violet-500 shrink-0" />
                         <div className="flex-1 min-w-0">

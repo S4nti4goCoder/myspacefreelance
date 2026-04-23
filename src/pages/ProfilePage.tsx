@@ -398,7 +398,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowCurrent((p) => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showCurrent ? (
                         <EyeOff className="h-4 w-4" />
@@ -423,7 +423,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowNew((p) => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showNew ? (
                         <EyeOff className="h-4 w-4" />
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm((p) => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showConfirm ? (
                         <EyeOff className="h-4 w-4" />
@@ -514,7 +514,7 @@ export default function ProfilePage() {
                         />
                         <button
                           onClick={handleRemoveLogo}
-                          className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:opacity-90"
+                          className="cursor-pointer absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:opacity-90"
                         >
                           <X className="h-3 w-3" />
                         </button>

@@ -73,7 +73,7 @@ export function ProjectCard({
                 e.stopPropagation();
                 onToggleSelect(project.id);
               }}
-              className="shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
+              className="cursor-pointer shrink-0 mt-0.5 text-muted-foreground hover:text-primary transition-colors"
               aria-label={isSelected ? "Deseleccionar" : "Seleccionar"}
             >
               {isSelected ? (
