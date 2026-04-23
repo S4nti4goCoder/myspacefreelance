@@ -9,7 +9,10 @@ import {
   Archive,
   LayoutGrid,
   CalendarDays,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
+import { downloadCSV, formatDate } from "@/lib/utils";
 import {
   useProjects,
   usePaginatedProjects,
@@ -139,6 +142,67 @@ export default function ProjectsPage() {
     });
   };
 
+  const handleExportCSV = () => {
+    if (!allProjects || allProjects.length === 0) {
+      toast.error("No hay proyectos para exportar");
+      return;
+    }
+
+    const search = filters.search.trim().toLowerCase();
+    const rows = allProjects
+      .filter((p) =>
+        filters.showArchived
+          ? p.status === "archived"
+          : p.status !== "archived",
+      )
+      .filter((p) =>
+        !filters.showArchived && filters.statusFilter !== "all"
+          ? p.status === filters.statusFilter
+          : true,
+      )
+      .filter((p) =>
+        filters.clientFilter !== "all"
+          ? p.client?.id === filters.clientFilter
+          : true,
+      )
+      .filter((p) =>
+        search
+          ? p.name.toLowerCase().includes(search) ||
+            (p.description?.toLowerCase().includes(search) ?? false)
+          : true,
+      );
+
+    if (rows.length === 0) {
+      toast.error("No hay proyectos que coincidan con los filtros");
+      return;
+    }
+
+    const headers = [
+      "Nombre",
+      "Cliente",
+      "Estado",
+      "Presupuesto",
+      "Progreso",
+      "Fecha inicio",
+      "Fecha entrega",
+      "Etiquetas",
+    ];
+    const csvRows = rows.map((p) => [
+      p.name,
+      p.client?.name ?? "",
+      statusLabels[p.status] ?? p.status,
+      String(p.budget ?? 0),
+      `${p.progress ?? 0}%`,
+      formatDate(p.start_date),
+      formatDate(p.due_date),
+      (p.tags ?? []).join(", "),
+    ]);
+
+    const suffix = filters.showArchived ? "archivados" : "activos";
+    downloadCSV(`proyectos-${suffix}.csv`, headers, csvRows);
+    toast.success(`${rows.length} proyecto${rows.length !== 1 ? "s" : ""} exportado${rows.length !== 1 ? "s" : ""}`);
+  };
+
   const handleBatchConfirm = () => {
     if (!batch.batchConfirm) return;
     const ids = Array.from(batch.selectedIds);
@@ -192,6 +256,15 @@ export default function ProjectsPage() {
               </Button>
             </div>
           )}
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="gap-2"
+            title="Exportar a CSV"
+          >
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
           <Button
             variant="outline"
             onClick={() => {

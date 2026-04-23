@@ -15,7 +15,9 @@ import {
   Eye,
   ChevronDown,
   Filter,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useQuotes, usePaginatedQuotes, useUpdateQuote, useDeleteQuote } from "@/hooks/useQuotes";
 import { useCanAccess } from "@/hooks/useMyPermissions";
 import { Button } from "@/components/ui/button";
@@ -37,7 +39,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { formatCOP, formatDate } from "@/lib/utils";
+import { formatCOP, formatDate, downloadCSV } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import type { Quote, QuoteStatus } from "@/types";
 import {
@@ -114,6 +116,59 @@ export default function QuotesPage() {
     updateQuote.mutate({ id: quote.id, status: "draft" });
   };
 
+  const handleExportCSV = () => {
+    if (!allQuotes || allQuotes.length === 0) {
+      toast.error("No hay cotizaciones para exportar");
+      return;
+    }
+
+    const s = search.trim().toLowerCase();
+    const rows = allQuotes
+      .filter((q) =>
+        showArchived ? q.status === "archived" : q.status !== "archived",
+      )
+      .filter((q) =>
+        !showArchived && statusFilter !== "all" ? q.status === statusFilter : true,
+      )
+      .filter((q) =>
+        s
+          ? q.quote_number.toLowerCase().includes(s) ||
+            q.client_name.toLowerCase().includes(s) ||
+            (q.client_company?.toLowerCase().includes(s) ?? false)
+          : true,
+      );
+
+    if (rows.length === 0) {
+      toast.error("No hay cotizaciones que coincidan con los filtros");
+      return;
+    }
+
+    const headers = [
+      "Número",
+      "Cliente",
+      "Empresa",
+      "Estado",
+      "Fecha",
+      "Ítems",
+      "Total",
+    ];
+    const csvRows = rows.map((q) => [
+      q.quote_number,
+      q.client_name,
+      q.client_company ?? "",
+      statusLabels[q.status] ?? q.status,
+      formatDate(q.created_at),
+      String(q.items?.length ?? 0),
+      String(calculateTotal(q)),
+    ]);
+
+    const suffix = showArchived ? "archivadas" : "activas";
+    downloadCSV(`cotizaciones-${suffix}.csv`, headers, csvRows);
+    toast.success(
+      `${rows.length} cotización${rows.length !== 1 ? "es" : ""} exportada${rows.length !== 1 ? "s" : ""}`,
+    );
+  };
+
   const handleDeleteConfirm = () => {
     if (!deletingQuote) return;
     deleteQuote.mutate(deletingQuote.id, {
@@ -138,6 +193,15 @@ export default function QuotesPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="gap-2"
+            title="Exportar a CSV"
+          >
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
