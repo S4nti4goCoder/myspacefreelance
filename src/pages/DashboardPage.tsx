@@ -363,12 +363,19 @@ export default function DashboardPage() {
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
                           fontSize: "12px",
+                          color: "var(--foreground)",
                         }}
-                        formatter={(value: unknown) => [`${value} proyecto(s)`, ""]}
+                        itemStyle={{ color: "var(--foreground)" }}
+                        allowEscapeViewBox={{ x: true, y: true }}
+                        offset={16}
+                        formatter={(value: unknown, name: unknown) => [
+                          `${value} proyecto${value === 1 ? "" : "s"}`,
+                          name,
+                        ]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
