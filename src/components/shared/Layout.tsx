@@ -20,6 +20,14 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import NotificationCenter from "@/components/shared/NotificationCenter";
 import { cn } from "@/lib/utils";
@@ -85,13 +93,23 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { setUser } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
+  const requestLogout = () => {
+    setSidebarOpen(false);
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = async () => {
+    setIsSigningOut(true);
     useAuthStore.getState().setIsLoggingOut(true);
     await supabase.auth.signOut();
     setUser(null);
+    setLogoutDialogOpen(false);
+    setIsSigningOut(false);
     toast.success("Sesión cerrada");
     navigate("/login");
   };
@@ -99,7 +117,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="h-screen overflow-hidden bg-background flex">
       <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card overflow-y-auto">
-        <SidebarContent onLogout={handleLogout} />
+        <SidebarContent onLogout={requestLogout} />
       </aside>
 
       <AnimatePresence>
@@ -120,7 +138,7 @@ export default function Layout({ children }: LayoutProps) {
               className="fixed inset-y-0 left-0 z-50 w-60 flex flex-col bg-card border-r border-border md:hidden"
             >
               <SidebarContent
-                onLogout={handleLogout}
+                onLogout={requestLogout}
                 onClose={() => setSidebarOpen(false)}
               />
             </motion.aside>
@@ -153,6 +171,42 @@ export default function Layout({ children }: LayoutProps) {
 
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
+
+      <Dialog
+        open={logoutDialogOpen}
+        onOpenChange={(open) => {
+          if (!isSigningOut) setLogoutDialogOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-destructive" />
+              Cerrar sesión
+            </DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas cerrar sesión? Tendrás que volver a
+              iniciar sesión para acceder a tu cuenta.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLogoutDialogOpen(false)}
+              disabled={isSigningOut}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmLogout}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? "Cerrando..." : "Sí, cerrar sesión"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
