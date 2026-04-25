@@ -267,21 +267,4 @@ Todas las tablas tienen políticas RLS configuradas. La cascada `ON DELETE` est�
 
 ---
 
-## 🧭 Roadmap (futuras mejoras)
-
-- [ ] Tests E2E con Playwright
-- [ ] Error monitoring con Sentry
-- [ ] GitHub Actions (CI: lint + tests + build en cada PR)
-- [ ] PWA con manifest + service worker
-- [ ] Internacionalización (i18n) — actualmente solo español
-- [ ] Tema personalizable por freelancer (colores de marca)
-
----
-
-## 📄 Licencia
-
-Proyecto privado. Todos los derechos reservados.
-
----
-
 **Desarrollado por** [@S4nti4goCoder](https://github.com/S4nti4goCoder)
