@@ -13,14 +13,69 @@
 
 ## 📸 Capturas
 
-> _(Espacio reservado para capturas del proyecto)_
+### Login y Dashboard
 
-- Dashboard con KPIs y actividad reciente
-- Login con split layout
-- Vista calendario tipo Gantt
-- Tablero Kanban con drag & drop
-- Editor de cotizaciones con cálculo en vivo
-- Portal del cliente
+| Login con split layout | Dashboard con KPIs y actividad |
+|---|---|
+| ![Login](docs/screenshots/01-login.png) | ![Dashboard](docs/screenshots/02-dashboard.png) |
+
+### Proyectos
+
+| Vista cuadrícula con filtros | Vista calendario tipo Gantt |
+|---|---|
+| ![Proyectos grid](docs/screenshots/03-proyectos-grid.png) | ![Proyectos calendario](docs/screenshots/04-proyectos-calendario.png) |
+
+| Tablero Kanban de tareas | Documentación en Markdown |
+|---|---|
+| ![Kanban](docs/screenshots/05-detalle-kanban.png) | ![Documentación](docs/screenshots/06-detalle-documentacion.png) |
+
+![Pagos del proyecto](docs/screenshots/07-detalle-pagos.png)
+
+### Cotizaciones
+
+| Lista de cotizaciones | Vista detalle (formato PDF) |
+|---|---|
+| ![Cotizaciones lista](docs/screenshots/08-cotizaciones-lista.png) | ![Cotización detalle](docs/screenshots/09-cotizacion-detalle.png) |
+
+**Editor con cálculo en vivo + preview lateral:**
+
+![Editor cotización](docs/screenshots/19-editor-cotizacion.png)
+
+### Reportes y catálogos
+
+| Reportes financieros | Catálogo de servicios |
+|---|---|
+| ![Reportes](docs/screenshots/10-reportes.png) | ![Servicios](docs/screenshots/13-servicios.png) |
+
+### Clientes y colaboradores
+
+| Cuentas de clientes | Colaboradores con permisos |
+|---|---|
+| ![Clientes](docs/screenshots/12-clientes.png) | ![Colaboradores](docs/screenshots/11-colaboradores.png) |
+
+**Matriz de permisos granulares por módulo (10 módulos × 4 acciones CRUD):**
+
+![Permisos colaborador](docs/screenshots/20-permisos-colaborador.png)
+
+### Portal del cliente
+
+| Dashboard del cliente | Vista del proyecto |
+|---|---|
+| ![Cliente dashboard](docs/screenshots/14-cliente-dashboard.png) | ![Cliente proyecto](docs/screenshots/15-cliente-proyecto.png) |
+
+**Chat bidireccional cliente ↔ freelancer:**
+
+![Cliente comentarios](docs/screenshots/16-cliente-comentarios.png)
+
+### Otras features
+
+| Centro de notificaciones | Búsqueda global (Ctrl+K) |
+|---|---|
+| ![Notificaciones](docs/screenshots/17-notificaciones.png) | ![Búsqueda global](docs/screenshots/21-busqueda-global.png) |
+
+**Perfil con configuración fiscal (IVA, retefuente, ReteICA):**
+
+![Perfil](docs/screenshots/18-perfil.png)
 
 ---
 
